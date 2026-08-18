@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>バイクジオメトリ＆ポジション シミュレーター</title>
     <style>
         :root {
@@ -20,6 +20,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+            touch-action: manipulation;
         }
 
         body {
@@ -53,7 +54,6 @@
             overflow: hidden;
         }
 
-        /* Sidebar Navigation & Panels */
         .sidebar {
             width: 360px;
             background-color: var(--panel-bg);
@@ -99,6 +99,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 16px;
+            -webkit-overflow-scrolling: touch;
         }
 
         .section-title {
@@ -141,9 +142,9 @@
             background-color: var(--bg-color);
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 4px 8px;
+            padding: 6px 8px;
             border-radius: 4px;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             text-align: right;
         }
 
@@ -158,7 +159,6 @@
             width: 24px;
         }
 
-        /* Canvas Visualization Viewport */
         .viewport {
             flex: 1;
             position: relative;
@@ -167,6 +167,7 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            touch-action: none;
         }
 
         canvas {
@@ -209,7 +210,6 @@
     </header>
 
     <div class="main-container">
-        <!-- サイドバー：計算結果 ＆ 入力フォーム -->
         <div class="sidebar">
             <div class="calc-results">
                 <div class="result-card">
@@ -301,52 +301,44 @@
                     <div class="input-wrapper"><input type="number" id="handleDrop" value="125"><span class="unit">mm</span></div>
                 </div>
                 <div class="input-group">
-                    <label for="saddleHeight">サドル高 (BB〜サドルトップ)</label>
+                    <label for="saddleHeight">サドル高 (BB〜サドルトップ直線長)</label>
                     <div class="input-wrapper"><input type="number" id="saddleHeight" value="700"><span class="unit">mm</span></div>
-                </div>
-                <div class="input-group">
-                    <label for="saddleSetback">サドルセットバック(後退量)</label>
-                    <div class="input-wrapper"><input type="number" id="saddleSetback" value="50"><span class="unit">mm</span></div>
                 </div>
             </div>
         </div>
 
-        <!-- メイン描画エリア -->
         <div class="viewport" id="viewport">
             <canvas id="bikeCanvas"></canvas>
-            <div class="controls-hint">ドラッグ: 移動 | ホイール: 拡大縮小</div>
+            <div class="controls-hint">ドラッグ/スワイプ: 移動 | ピンチ/ホイール: 拡大縮小</div>
         </div>
     </div>
 
     <script>
-        // --- 描画・操作用状態変数 ---
         const canvas = document.getElementById('bikeCanvas');
         const ctx = canvas.getContext('2d');
         const viewport = document.getElementById('viewport');
 
-        let scale = 0.8; // mm -> pixel 変換用
+        let scale = 0.8;
         let panX = 0;
         let panY = 0;
         let isDragging = false;
         let startX, startY;
+        let initialPinchDistance = null;
 
-        // --- 入力エレメントの取得 ---
         const inputs = [
             'reach', 'stack', 'headAngle', 'seatAngle', 'seatTube', 'ett',
             'rearCenter', 'frontCenter', 'bbDrop', 'forkOffset', 'wheelbase', 'headTube',
             'stemLength', 'stemAngle', 'stemStack', 'spacerHeight',
-            'handleReach', 'handleDrop', 'saddleHeight', 'saddleSetback'
+            'handleReach', 'handleDrop', 'saddleHeight'
         ].reduce((acc, id) => {
             acc[id] = document.getElementById(id);
             return acc;
         }, {});
 
-        // キャンバスのリサイズ設定
         function resizeCanvas() {
             canvas.width = viewport.clientWidth;
             canvas.height = viewport.clientHeight;
             if (panX === 0 && panY === 0) {
-                // 初期表示を中心に設定
                 panX = canvas.width / 2 - 100;
                 panY = canvas.height / 2 + 150;
             }
@@ -355,12 +347,11 @@
 
         window.addEventListener('resize', resizeCanvas);
 
-        // --- 入力値の変更イベント検知 ---
         Object.values(inputs).forEach(input => {
             input.addEventListener('input', draw);
         });
 
-        // --- マウスによるパン＆ズーム ---
+        // --- マウス操作 ---
         viewport.addEventListener('mousedown', (e) => {
             isDragging = true;
             startX = e.clientX - panX;
@@ -387,12 +378,51 @@
             draw();
         }, { passive: false });
 
-        // --- 度→ラジアン変換 ---
+        // --- タッチ操作 (ピンチズーム & パン) ---
+        function getTouchDistance(touches) {
+            return Math.hypot(
+                touches[0].clientX - touches[1].clientX,
+                touches[0].clientY - touches[1].clientY
+            );
+        }
+
+        viewport.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                startX = e.touches[0].clientX - panX;
+                startY = e.touches[0].clientY - panY;
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                initialPinchDistance = getTouchDistance(e.touches);
+            }
+        }, { passive: true });
+
+        viewport.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 1 && isDragging) {
+                panX = e.touches[0].clientX - startX;
+                panY = e.touches[0].clientY - startY;
+                draw();
+            } else if (e.touches.length === 2 && initialPinchDistance) {
+                const currentDistance = getTouchDistance(e.touches);
+                const factor = currentDistance / initialPinchDistance;
+                scale *= factor;
+                initialPinchDistance = currentDistance;
+                draw();
+            }
+        }, { passive: true });
+
+        viewport.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                initialPinchDistance = null;
+            }
+            if (e.touches.length === 0) {
+                isDragging = false;
+            }
+        });
+
         const degToRad = deg => (deg * Math.PI) / 180;
 
-        // --- メイン描画＆計算関数 ---
         function draw() {
-            // 入力データの数値化 (mm, deg)
             const val = id => parseFloat(inputs[id].value) || 0;
 
             const reach = val('reach');
@@ -415,71 +445,64 @@
             const handleReach = val('handleReach');
             const handleDrop = val('handleDrop');
             const saddleHeight = val('saddleHeight');
-            const saddleSetback = val('saddleSetback');
 
-            // --- 幾何学計算 (BBセンターを原点 (0,0) とする) ---
-            // 座標系: X右方向がプラス(前方), Y上方向がプラス
+            // --- 幾何学計算 (BBセンター原点 (0,0)) ---
+            // 角度基準：車体後方からの水平線（地平線）基準で立ち上がる
+            // ラジアン計算 (角度θ → X方向: -cosθ, Y方向: +sinθ)
+            const stRad = degToRad(seatAngle);
+            const htRad = degToRad(headAngle);
 
-            // 1. ヘッドチューブ上部センター(スタック・リーチ点)
+            // 1. サドルトップ位置 (写真2の赤線: BBから直接直線距離で伸ばす)
+            const saddleTop = {
+                x: -saddleHeight * Math.cos(stRad),
+                y: saddleHeight * Math.sin(stRad)
+            };
+
+            // 2. ヘッドチューブ上部センター (リーチ/スタック点)
             const htTopCenter = { x: reach, y: stack };
 
-            // 2. ステムクランプセンター計算
-            // コラム軸角度: ヘッドアングルに直交する方向（垂直から90-headAngle傾く）
-            const steererAngleRad = degToRad(90 - headAngle);
-            // コラム上の移動距離 = スペーサー高 + ステムスタック高の半分
+            // 3. ステム＆ハンドル位置
+            // コラムの伸ばす方向 (ヘッドチューブに沿って上方向)
             const steererDist = spacerHeight + (stemStack / 2);
             const steererPoint = {
-                x: htTopCenter.x - steererDist * Math.sin(steererAngleRad),
-                y: htTopCenter.y + steererDist * Math.cos(steererAngleRad)
+                x: htTopCenter.x - steererDist * Math.cos(htRad),
+                y: htTopCenter.y + steererDist * Math.sin(htRad)
             };
 
-            // ステム角度: コラムに垂直な面に対する角度
-            // ステム有効角度(水平基準) = (90 - headAngle) + stemAngle
-            const totalStemAngleRad = degToRad((90 - headAngle) + stemAngle);
+            // ステムの角度 (コラムに垂直な面からの傾き)
+            const totalStemRad = htRad - degToRad(90) + degToRad(stemAngle);
             const clampCenter = {
-                x: steererPoint.x + stemLength * Math.cos(totalStemAngleRad),
-                y: steererPoint.y + stemLength * Math.sin(totalStemAngleRad)
+                x: steererPoint.x + stemLength * Math.cos(totalStemRad),
+                y: steererPoint.y + stemLength * Math.sin(totalStemRad)
             };
 
-            // 3. ハンドルトップ / ドロップ計算
             const barTop = {
                 x: clampCenter.x,
-                y: clampCenter.y + 15 // ハンドルバー上部の厚み(目安15mm)
+                y: clampCenter.y + 15
             };
 
-            // 4. サドルトップ位置計算 (サドル高とセットバック基準)
-            // シートアングル傾斜直線上の点ではなく、一般的なフィッティング表記のBBから直接計算
-            const saddleTop = {
-                x: -saddleSetback,
-                y: Math.sqrt(Math.max(0, Math.pow(saddleHeight, 2) - Math.pow(saddleSetback, 2)))
-            };
-
-            // --- 必須計算項目の出力 ---
-            // 項目1: サドルトップからステムハンドルクランプ部までの距離 (直線距離)
+            // --- 必須計算出力 ---
             const saddleToClamp = Math.sqrt(
                 Math.pow(clampCenter.x - saddleTop.x, 2) + 
                 Math.pow(clampCenter.y - saddleTop.y, 2)
             );
-            
-            // 項目2: BBセンターからハンドルトップまでの高さ (Y座標)
             const bbToHandleTop = barTop.y;
 
             document.getElementById('res-saddle-to-clamp').innerText = `${saddleToClamp.toFixed(1)} mm`;
             document.getElementById('res-bb-to-handletop').innerText = `${bbToHandleTop.toFixed(1)} mm`;
 
-            // --- 描画処理 ---
+            // --- Canvas描画 ---
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 座標変換用のヘルパー (実座標 mm -> キャンバスピクセル座標)
             const toPx = (pt) => ({
                 x: panX + pt.x * scale,
-                y: panY - pt.y * scale // CanvasはY下向きが正
+                y: panY - pt.y * scale
             });
 
-            // 背景グリッド描画
+            // 背景グリッド
             ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 1;
-            const gridSize = 100 * scale; // 100mm格子
+            const gridSize = 100 * scale;
             for (let x = panX % gridSize; x < canvas.width; x += gridSize) {
                 ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
             }
@@ -487,29 +510,21 @@
                 ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
             }
 
-            // 地平線 (BB基準 drop描画のため)
-            const bbPx = toPx({x: 0, y: 0});
-
-            // 各主要フレームポイントの算出
             const rearAxle = { x: -rearCenter, y: -bbDrop };
             const frontAxle = { x: frontCenter, y: -bbDrop };
             
             // ヘッドチューブ下部
-            const htAngleRad = degToRad(headAngle);
-            const htVector = { x: Math.cos(htAngleRad), y: Math.sin(htAngleRad) };
             const htBottomCenter = {
-                x: htTopCenter.x - headTube * htVector.x,
-                y: htTopCenter.y - headTube * htVector.y
+                x: htTopCenter.x + headTube * Math.cos(htRad),
+                y: htTopCenter.y - headTube * Math.sin(htRad)
             };
 
-            // シートチューブ上部 (シートクランプ付近)
-            const stAngleRad = degToRad(seatAngle);
+            // シートチューブ上部
             const seatTubeTop = {
-                x: -seatTube * Math.cos(stAngleRad),
-                y: seatTube * Math.sin(stAngleRad)
+                x: -seatTube * Math.cos(stRad),
+                y: seatTube * Math.sin(stRad)
             };
 
-            // --- Canvas描画ユーティリティ ---
             const drawLine = (pt1, pt2, color, width = 2, dash = []) => {
                 const p1 = toPx(pt1), p2 = toPx(pt2);
                 ctx.save();
@@ -537,58 +552,48 @@
                 }
             };
 
-            // 1. ホイール (700c目安: 半径 340mm)
-            const wheelRadius = 340;
-            drawCircle(rearAxle, wheelRadius, '#334155');
-            drawCircle(frontAxle, wheelRadius, '#334155');
+            // 1. ホイール
+            drawCircle(rearAxle, 340, '#334155');
+            drawCircle(frontAxle, 340, '#334155');
 
-            // 2. フレーム幾何（線図）
-            // リアトライアングル
-            drawLine({x:0, y:0}, rearAxle, '#f43f5e', 3); // チェーンステー
-            drawLine(rearAxle, seatTubeTop, '#f43f5e', 2); // シートステー
-            drawLine({x:0, y:0}, seatTubeTop, '#f43f5e', 3); // シートチューブ
-
-            // フロントトライアングル
-            drawLine({x:0, y:0}, htBottomCenter, '#f43f5e', 3); // ダウンチューブ
-            drawLine(seatTubeTop, htTopCenter, '#f43f5e', 3); // トップチューブ
-            drawLine(htBottomCenter, htTopCenter, '#f43f5e', 4); // ヘッドチューブ
-
-            // フォーク
+            // 2. フレーム
+            drawLine({x:0, y:0}, rearAxle, '#f43f5e', 3);
+            drawLine(rearAxle, seatTubeTop, '#f43f5e', 2);
+            drawLine({x:0, y:0}, seatTubeTop, '#f43f5e', 3);
+            drawLine({x:0, y:0}, htBottomCenter, '#f43f5e', 3);
+            drawLine(seatTubeTop, htTopCenter, '#f43f5e', 3);
+            drawLine(htBottomCenter, htTopCenter, '#f43f5e', 4);
             drawLine(htBottomCenter, frontAxle, '#f43f5e', 2.5);
 
-            // 3. ポジション構成パーツ（緑色系）
-            // シートポスト & サドル
-            drawLine(seatTubeTop, saddleTop, '#10b981', 3);
-            // サドル形状簡易描画
+            // 3. ポジションパーツ
+            // シートポスト (写真2の赤線部分: BBから直線的にサドルまで接続)
+            drawLine({x:0, y:0}, saddleTop, '#10b981', 3);
+            
+            // サドル本体
             const saddleLeft = { x: saddleTop.x - 130, y: saddleTop.y };
             const saddleRight = { x: saddleTop.x + 140, y: saddleTop.y };
             drawLine(saddleLeft, saddleRight, '#10b981', 5);
 
-            // コラム & スペーサー & ステム
-            drawLine(htTopCenter, steererPoint, '#10b981', 4); // スペーサー部
-            drawLine(steererPoint, clampCenter, '#10b981', 5); // ステム
+            // ステム & ハンドル
+            drawLine(htTopCenter, steererPoint, '#10b981', 4);
+            drawLine(steererPoint, clampCenter, '#10b981', 5);
 
-            // ドロップハンドル (簡易描画)
             const handleHood = { x: clampCenter.x + handleReach, y: clampCenter.y };
             const handleDropPt = { x: clampCenter.x + handleReach - 20, y: clampCenter.y - handleDrop };
             drawLine(clampCenter, handleHood, '#10b981', 3);
             drawLine(handleHood, handleDropPt, '#10b981', 2);
 
-            // 4. 計算用の補助線 (点線 & ガイド)
-            // サドルトップ 〜 ステムクランプ部 (算出項目1)
+            // 4. 計算・アングル参照用ガイド
             drawLine(saddleTop, clampCenter, '#38bdf8', 1.5, [4, 4]);
-
-            // BB 〜 ハンドルトップ 高さガイド (算出項目2)
             drawLine({x: 0, y: 0}, {x: barTop.x, y: 0}, '#64748b', 1, [2, 2]);
             drawLine({x: barTop.x, y: 0}, barTop, '#38bdf8', 1.5, [4, 4]);
 
-            // 5. 支点・重要ポイントマーク
-            drawCircle({x:0, y:0}, 8, '#f8fafc', true); // BB
-            drawCircle(clampCenter, 5, '#38bdf8', true); // クランプ部
-            drawCircle(saddleTop, 5, '#10b981', true); // サドルトップ基準点
+            // 5. マーク
+            drawCircle({x:0, y:0}, 8, '#f8fafc', true);
+            drawCircle(clampCenter, 5, '#38bdf8', true);
+            drawCircle(saddleTop, 5, '#10b981', true);
         }
 
-        // 初期描画実行
         resizeCanvas();
     </script>
 </body>
