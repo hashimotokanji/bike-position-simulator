@@ -330,11 +330,9 @@
                 <div class="input-group"><label for="headAngle">ヘッドアングル</label><div class="input-wrapper"><input type="number" id="headAngle" step="0.1"><span class="unit">°</span></div></div>
                 <div class="input-group"><label for="seatAngle">シートアングル</label><div class="input-wrapper"><input type="number" id="seatAngle" step="0.1"><span class="unit">°</span></div></div>
                 <div class="input-group"><label for="seatTube">シートチューブ長</label><div class="input-wrapper"><input type="number" id="seatTube"><span class="unit">mm</span></div></div>
-                <div class="input-group"><label for="ett">仮想トップチューブ長(水平)</label><div class="input-wrapper"><input type="number" id="ett"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="rearCenter">リアセンター長</label><div class="input-wrapper"><input type="number" id="rearCenter"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="frontCenter">フロントセンター長</label><div class="input-wrapper"><input type="number" id="frontCenter"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="bbDrop">BB下がり</label><div class="input-wrapper"><input type="number" id="bbDrop"><span class="unit">mm</span></div></div>
-                <div class="input-group"><label for="forkOffset">フォークオフセット</label><div class="input-wrapper"><input type="number" id="forkOffset"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="wheelbase">ホイールベース</label><div class="input-wrapper"><input type="number" id="wheelbase"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="headTube">ヘッドチューブ長</label><div class="input-wrapper"><input type="number" id="headTube"><span class="unit">mm</span></div></div>
 
@@ -357,10 +355,8 @@
     </div>
 
     <script>
-        // --- プリセット色リスト ---
         const PRESET_COLORS = ['#f43f5e', '#38bdf8', '#10b981', '#fbbf24', '#a855f7', '#ec4899'];
 
-        // --- デフォルトデータ構造 ---
         const createDefaultBike = (id, name, color) => ({
             id: id,
             name: name,
@@ -368,25 +364,22 @@
             visible: true,
             data: {
                 reach: 385, stack: 540, headAngle: 73, seatAngle: 74, seatTube: 500,
-                ett: 535, rearCenter: 410, frontCenter: 580, bbDrop: 70, forkOffset: 45,
+                rearCenter: 410, frontCenter: 580, bbDrop: 70,
                 wheelbase: 980, headTube: 130, stemLength: 100, stemAngle: -6, stemStack: 40,
                 spacerHeight: 15, handleReach: 80, handleDrop: 125, saddleHeight: 700
             }
         });
 
-        // アプリケーション状態
         let bikes = [
             createDefaultBike('1', 'バイク 1', PRESET_COLORS[0]),
             createDefaultBike('2', 'バイク 2', PRESET_COLORS[1])
         ];
-        // 2本目のデフォルト値を少し変えて比較しやすくする
         bikes[1].data.reach = 395;
         bikes[1].data.stack = 550;
         bikes[1].data.stemLength = 110;
 
         let activeBikeId = '1';
 
-        // Viewport 状態
         const canvas = document.getElementById('bikeCanvas');
         const ctx = canvas.getContext('2d');
         const viewport = document.getElementById('viewport');
@@ -399,8 +392,8 @@
         let initialPinchDistance = null;
 
         const inputIds = [
-            'reach', 'stack', 'headAngle', 'seatAngle', 'seatTube', 'ett',
-            'rearCenter', 'frontCenter', 'bbDrop', 'forkOffset', 'wheelbase', 'headTube',
+            'reach', 'stack', 'headAngle', 'seatAngle', 'seatTube',
+            'rearCenter', 'frontCenter', 'bbDrop', 'wheelbase', 'headTube',
             'stemLength', 'stemAngle', 'stemStack', 'spacerHeight',
             'handleReach', 'handleDrop', 'saddleHeight'
         ];
@@ -410,7 +403,6 @@
             return acc;
         }, {});
 
-        // --- UI 操作 & バイクデータ連携 ---
         function getActiveBike() {
             return bikes.find(b => b.id === activeBikeId) || bikes[0];
         }
@@ -437,7 +429,6 @@
             inputs[id].addEventListener('input', updateActiveBikeFromInputs);
         });
 
-        // タブ UI の描画
         function renderTabs() {
             const container = document.getElementById('bikeTabsList');
             container.innerHTML = '';
@@ -459,7 +450,6 @@
                     </div>
                 `;
 
-                // クリックでアクティブ化
                 tab.addEventListener('click', (e) => {
                     if (e.target.tagName === 'INPUT' || e.target.classList.contains('btn-tab-action')) return;
                     activeBikeId = bike.id;
@@ -468,20 +458,17 @@
                     draw();
                 });
 
-                // 可視性トグル
                 tab.querySelector('.chk-visible').addEventListener('change', (e) => {
                     bike.visible = e.target.checked;
                     draw();
                 });
 
-                // カラー変更
                 tab.querySelector('.tab-color-picker').addEventListener('input', (e) => {
                     bike.color = e.target.value;
                     renderTabs();
                     draw();
                 });
 
-                // 複製
                 tab.querySelector('.btn-clone').addEventListener('click', (e) => {
                     e.stopPropagation();
                     const newId = String(Date.now());
@@ -500,7 +487,6 @@
                     draw();
                 });
 
-                // 削除
                 const btnDel = tab.querySelector('.btn-del');
                 if (btnDel) {
                     btnDel.addEventListener('click', (e) => {
@@ -519,7 +505,6 @@
             });
         }
 
-        // バイク追加ボタン
         document.getElementById('btnAddBike').addEventListener('click', () => {
             const newId = String(Date.now());
             const newColor = PRESET_COLORS[bikes.length % PRESET_COLORS.length];
@@ -531,7 +516,6 @@
             draw();
         });
 
-        // --- キャンバス調整・操作 ---
         function resizeCanvas() {
             canvas.width = viewport.clientWidth;
             canvas.height = viewport.clientHeight;
@@ -544,7 +528,6 @@
 
         window.addEventListener('resize', resizeCanvas);
 
-        // マウス操作
         viewport.addEventListener('mousedown', (e) => {
             isDragging = true;
             startX = e.clientX - panX;
@@ -568,7 +551,6 @@
             draw();
         }, { passive: false });
 
-        // タッチ操作 (ピンチズーム/パン)
         function getTouchDistance(touches) {
             return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
         }
@@ -604,31 +586,23 @@
 
         const degToRad = deg => (deg * Math.PI) / 180;
 
-        // --- バイク1台分の幾何点計算 ---
         function calculateBikeGeometry(bData) {
             const stRad = degToRad(bData.seatAngle);
             const htRad = degToRad(bData.headAngle);
 
-            // 1. サドルトップ位置 (BBから直接直線距離で伸ばす)
             const saddleTop = {
                 x: -bData.saddleHeight * Math.cos(stRad),
                 y: bData.saddleHeight * Math.sin(stRad)
             };
 
-            // 2. ヘッドチューブ上部センター (リーチ/スタック点)
             const htTopCenter = { x: bData.reach, y: bData.stack };
 
-            // 3. ステム＆ハンドル位置
-            // コラムに沿って伸ばす距離
             const steererDist = bData.spacerHeight + (bData.stemStack / 2);
             const steererPoint = {
                 x: htTopCenter.x - steererDist * Math.cos(htRad),
                 y: htTopCenter.y + steererDist * Math.sin(htRad)
             };
 
-            // 【新ステムアングル仕様】
-            // 0°でヘッドチューブ（コラム）と垂直（前上がり90°-HA）
-            // マイナスで下向き（角度減少）、プラスで上向き（角度増加）
             const stemTotalAngleRad = degToRad(90 - bData.headAngle + bData.stemAngle);
             
             const clampCenter = {
@@ -638,16 +612,14 @@
 
             const barTop = {
                 x: clampCenter.x,
-                y: clampCenter.y + 15 // ハンドル上端目安
+                y: clampCenter.y + 15
             };
 
-            // ヘッドチューブ下部
             const htBottomCenter = {
                 x: htTopCenter.x + bData.headTube * Math.cos(htRad),
                 y: htTopCenter.y - bData.headTube * Math.sin(htRad)
             };
 
-            // シートチューブ上部
             const seatTubeTop = {
                 x: -bData.seatTube * Math.cos(stRad),
                 y: bData.seatTube * Math.sin(stRad)
@@ -656,7 +628,6 @@
             const rearAxle = { x: -bData.rearCenter, y: -bData.bbDrop };
             const frontAxle = { x: bData.frontCenter, y: -bData.bbDrop };
 
-            // 算出項目
             const saddleToClamp = Math.sqrt(
                 Math.pow(clampCenter.x - saddleTop.x, 2) + 
                 Math.pow(clampCenter.y - saddleTop.y, 2)
@@ -670,7 +641,6 @@
             };
         }
 
-        // --- メイン描画処理 ---
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -679,7 +649,6 @@
                 y: panY - pt.y * scale
             });
 
-            // 1. 背景グリッド (100mm間隔)
             ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 1;
             const gridSize = 100 * scale;
@@ -717,15 +686,12 @@
                 }
             };
 
-            // テーブル用HTMLの初期化
             const tableBody = document.getElementById('resultTableBody');
             tableBody.innerHTML = '';
 
-            // 2. 重ね合わせ描画 (全表示バイクをBB基準 (0,0) で重ねて描画)
             bikes.forEach(bike => {
                 const geo = calculateBikeGeometry(bike.data);
 
-                // 計算結果テーブルへの反映
                 if (bike.visible) {
                     const tr = document.createElement('tr');
                     tr.style.color = bike.color;
@@ -744,11 +710,9 @@
                 const strokeWidth = isSelected ? 3 : 1.5;
                 const lineDash = isSelected ? [] : [6, 4];
 
-                // ホイール (700c 目安: 半径 340mm)
                 drawCircle(geo.rearAxle, 340, mainColor);
                 drawCircle(geo.frontAxle, 340, mainColor);
 
-                // フレーム幾何 (リア三角、フロント三角、フォーク)
                 drawLine({x:0, y:0}, geo.rearAxle, mainColor, strokeWidth, lineDash);
                 drawLine(geo.rearAxle, geo.seatTubeTop, mainColor, strokeWidth, lineDash);
                 drawLine({x:0, y:0}, geo.seatTubeTop, mainColor, strokeWidth, lineDash);
@@ -757,25 +721,19 @@
                 drawLine(geo.htBottomCenter, geo.htTopCenter, mainColor, strokeWidth + 1, lineDash);
                 drawLine(geo.htBottomCenter, geo.frontAxle, mainColor, strokeWidth, lineDash);
 
-                // ポジション構成パーツ
-                // シートポスト
                 drawLine({x:0, y:0}, geo.saddleTop, mainColor, strokeWidth, lineDash);
-                // サドル
                 const saddleLeft = { x: geo.saddleTop.x - 130, y: geo.saddleTop.y };
                 const saddleRight = { x: geo.saddleTop.x + 140, y: geo.saddleTop.y };
                 drawLine(saddleLeft, saddleRight, mainColor, strokeWidth + 2);
 
-                // コラム & ステム
                 drawLine(geo.htTopCenter, geo.steererPoint, mainColor, strokeWidth + 1);
                 drawLine(geo.steererPoint, geo.clampCenter, mainColor, strokeWidth + 2);
 
-                // ドロップハンドル
                 const handleHood = { x: geo.clampCenter.x + bike.data.handleReach, y: geo.clampCenter.y };
                 const handleDropPt = { x: geo.clampCenter.x + bike.data.handleReach - 20, y: geo.clampCenter.y - bike.data.handleDrop };
                 drawLine(geo.clampCenter, handleHood, mainColor, strokeWidth);
                 drawLine(handleHood, handleDropPt, mainColor, strokeWidth - 0.5);
 
-                // アクティブなバイクのガイド線 & 重要マーク
                 if (isSelected) {
                     drawLine(geo.saddleTop, geo.clampCenter, '#38bdf8', 1, [3, 3]);
                     drawLine({x: 0, y: 0}, {x: geo.barTop.x, y: 0}, '#64748b', 1, [2, 2]);
@@ -786,12 +744,10 @@
                 }
             });
 
-            // 共通基準点 (BB) の強調描画
             drawCircle({x:0, y:0}, 7, '#f8fafc', true);
             drawCircle({x:0, y:0}, 9, '#38bdf8', false);
         }
 
-        // 初期化実行
         loadInputsFromActiveBike();
         renderTabs();
         resizeCanvas();
