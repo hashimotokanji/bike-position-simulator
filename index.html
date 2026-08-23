@@ -53,7 +53,7 @@
         }
 
         .sidebar {
-            width: 380px;
+            width: 400px;
             background-color: var(--panel-bg);
             border-right: 1px solid var(--border-color);
             display: flex;
@@ -163,21 +163,21 @@
 
         /* 計算結果エリア */
         .calc-results {
-            padding: 12px;
+            padding: 10px 12px;
             background-color: rgba(56, 189, 248, 0.03);
             border-bottom: 1px solid var(--border-color);
-            max-height: 160px;
+            max-height: 180px;
             overflow-y: auto;
         }
 
         .result-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
         }
 
         .result-table th, .result-table td {
-            padding: 4px 6px;
+            padding: 4px 4px;
             text-align: left;
             border-bottom: 1px solid rgba(51, 65, 85, 0.5);
         }
@@ -314,7 +314,8 @@
                     <thead>
                         <tr>
                             <th>バイク名</th>
-                            <th>サドル〜クランプ長</th>
+                            <th>サドル〜ハンドル長</th>
+                            <th>サドル〜ハンドルトップ落差</th>
                             <th>BB〜ハンドルトップ高</th>
                         </tr>
                     </thead>
@@ -628,16 +629,18 @@
             const rearAxle = { x: -bData.rearCenter, y: -bData.bbDrop };
             const frontAxle = { x: bData.frontCenter, y: -bData.bbDrop };
 
-            const saddleToClamp = Math.sqrt(
+            // 指標計算
+            const saddleToHandle = Math.sqrt(
                 Math.pow(clampCenter.x - saddleTop.x, 2) + 
                 Math.pow(clampCenter.y - saddleTop.y, 2)
             );
+            const saddleToHandleDrop = saddleTop.y - barTop.y;
             const bbToHandleTop = barTop.y;
 
             return {
                 saddleTop, htTopCenter, steererPoint, clampCenter, barTop,
                 htBottomCenter, seatTubeTop, rearAxle, frontAxle,
-                saddleToClamp, bbToHandleTop
+                saddleToHandle, saddleToHandleDrop, bbToHandleTop
             };
         }
 
@@ -697,7 +700,8 @@
                     tr.style.color = bike.color;
                     tr.innerHTML = `
                         <td><strong>${bike.name}</strong></td>
-                        <td class="result-val">${geo.saddleToClamp.toFixed(1)} mm</td>
+                        <td class="result-val">${geo.saddleToHandle.toFixed(1)} mm</td>
+                        <td class="result-val">${geo.saddleToHandleDrop.toFixed(1)} mm</td>
                         <td class="result-val">${geo.bbToHandleTop.toFixed(1)} mm</td>
                     `;
                     tableBody.appendChild(tr);
@@ -735,12 +739,16 @@
                 drawLine(handleHood, handleDropPt, mainColor, strokeWidth - 0.5);
 
                 if (isSelected) {
+                    // サドル〜ハンドル直線
                     drawLine(geo.saddleTop, geo.clampCenter, '#38bdf8', 1, [3, 3]);
-                    drawLine({x: 0, y: 0}, {x: geo.barTop.x, y: 0}, '#64748b', 1, [2, 2]);
-                    drawLine({x: geo.barTop.x, y: 0}, geo.barTop, '#38bdf8', 1, [3, 3]);
+                    
+                    // サドル高とハンドルトップ高の水平落差基準線
+                    drawLine(geo.saddleTop, {x: geo.barTop.x, y: geo.saddleTop.y}, '#64748b', 1, [2, 2]);
+                    drawLine({x: geo.barTop.x, y: geo.saddleTop.y}, geo.barTop, '#f43f5e', 1, [3, 3]);
 
                     drawCircle(geo.clampCenter, 4, '#38bdf8', true);
                     drawCircle(geo.saddleTop, 4, mainColor, true);
+                    drawCircle(geo.barTop, 3, '#f43f5e', true);
                 }
             });
 
