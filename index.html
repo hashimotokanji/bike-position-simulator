@@ -61,7 +61,6 @@
             z-index: 10;
         }
 
-        /* 比較タブ・コントロール */
         .bike-tabs-bar {
             padding: 10px 12px;
             background-color: rgba(15, 23, 42, 0.4);
@@ -159,7 +158,6 @@
         }
         .btn-tab-action:hover { color: var(--text-main); background: rgba(255,255,255,0.1); }
 
-        /* 計算結果エリア (格納・展開可能) */
         .calc-results {
             background-color: rgba(56, 189, 248, 0.03);
             border-bottom: 1px solid var(--border-color);
@@ -215,7 +213,6 @@
             color: var(--accent-color);
         }
 
-        /* パラメータ入力フォーム */
         .inputs-container {
             flex: 1;
             overflow-y: auto;
@@ -275,7 +272,6 @@
             width: 20px;
         }
 
-        /* 描画エリア */
         .viewport {
             flex: 1;
             position: relative;
@@ -320,9 +316,7 @@
     </header>
 
     <div class="main-container">
-        <!-- サイドバー -->
         <div class="sidebar">
-            <!-- バイク重ね合わせ管理タブ -->
             <div class="bike-tabs-bar">
                 <div class="tabs-header">
                     <span>重ね合わせ比較リスト (BB基準)</span>
@@ -331,7 +325,6 @@
                 <div class="bike-tabs-list" id="bikeTabsList"></div>
             </div>
 
-            <!-- 計算結果エリア (格納・展開可能) -->
             <div class="calc-results" id="calcResults">
                 <button class="calc-toggle-btn" id="btnToggleCalc">
                     <span>▼ 算出結果比較</span>
@@ -353,7 +346,6 @@
                 </div>
             </div>
 
-            <!-- パラメータ入力フォーム -->
             <div class="inputs-container">
                 <div class="section-title">バイクジオメトリ</div>
                 <div class="input-group"><label for="reach">リーチ</label><div class="input-wrapper"><input type="number" id="reach"><span class="unit">mm</span></div></div>
@@ -379,7 +371,6 @@
             </div>
         </div>
 
-        <!-- メインキャンバス表示エリア -->
         <div class="viewport" id="viewport">
             <canvas id="bikeCanvas"></canvas>
             <div class="controls-hint">ドラッグ/スワイプ: 移動 | ピンチ/ホイール: 拡大縮小</div>
@@ -435,7 +426,6 @@
             return acc;
         }, {});
 
-        // 結果折りたたみボタン制御
         const calcResults = document.getElementById('calcResults');
         const btnToggleCalc = document.getElementById('btnToggleCalc');
         const toggleIcon = document.getElementById('toggleIcon');
@@ -645,11 +635,11 @@
                 y: htTopCenter.y + steererDist * Math.sin(htRad)
             };
 
-            const stemTotalAngleRad = degToRad(90 - bData.headAngle + bData.stemAngle);
+            const stemAngleFromHorizontalRad = degToRad((90 - bData.headAngle) + bData.stemAngle);
             
             const clampCenter = {
-                x: steererPoint.x + bData.stemLength * Math.cos(stemTotalAngleRad),
-                y: steererPoint.y + bData.stemLength * Math.sin(stemTotalAngleRad)
+                x: steererPoint.x + bData.stemLength * Math.cos(stemAngleFromHorizontalRad),
+                y: steererPoint.y + bData.stemLength * Math.sin(stemAngleFromHorizontalRad)
             };
 
             const barTop = {
@@ -657,7 +647,6 @@
                 y: clampCenter.y + 15
             };
 
-            // 赤線（フラット部〜フードトップ部）先端の座標計算
             const barAngleRad = degToRad(bData.handleBarAngle || 0);
             const handleTip = {
                 x: clampCenter.x + bData.handleReach * Math.cos(barAngleRad),
@@ -677,13 +666,11 @@
             const rearAxle = { x: -bData.rearCenter, y: -bData.bbDrop };
             const frontAxle = { x: bData.frontCenter, y: -bData.bbDrop };
 
-            // 指標計算
             const saddleToHandle = Math.sqrt(
                 Math.pow(clampCenter.x - saddleTop.x, 2) + 
                 Math.pow(clampCenter.y - saddleTop.y, 2)
             );
             
-            // 修正箇所：サドルトップ高とハンドル先端高（赤線先端）の垂直落差計算
             const saddleToTipDrop = saddleTop.y - handleTip.y;
             const bbToHandleTop = barTop.y;
             const handleAngleVal = bData.handleBarAngle || 0;
@@ -785,7 +772,7 @@
                 drawLine(geo.htTopCenter, geo.steererPoint, mainColor, strokeWidth + 1);
                 drawLine(geo.steererPoint, geo.clampCenter, mainColor, strokeWidth + 2);
 
-                // 赤線（ハンドルフラット部/先端）の描画
+                // 赤線（フラット部/先端）
                 drawLine(geo.clampCenter, geo.handleTip, '#f43f5e', strokeWidth + 1);
 
                 // 下ハン部
@@ -797,10 +784,7 @@
                 drawLine(geo.handleTip, handleDropPt, mainColor, strokeWidth - 0.5);
 
                 if (isSelected) {
-                    // サドル〜ハンドルクランプ直線
                     drawLine(geo.saddleTop, geo.clampCenter, '#38bdf8', 1, [3, 3]);
-                    
-                    // サドルトップ〜赤線先端の落差ガイドライン
                     drawLine(geo.saddleTop, {x: geo.handleTip.x, y: geo.saddleTop.y}, '#64748b', 1, [2, 2]);
                     drawLine({x: geo.handleTip.x, y: geo.saddleTop.y}, geo.handleTip, '#f43f5e', 1, [3, 3]);
 
