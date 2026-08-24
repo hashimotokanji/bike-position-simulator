@@ -96,7 +96,7 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-            max-height: 140px;
+            max-height: 120px;
             overflow-y: auto;
         }
 
@@ -161,13 +161,46 @@
         }
         .btn-tab-action:hover { color: var(--text-main); background: rgba(255,255,255,0.1); }
 
-        /* 計算結果エリア */
-        .calc-results {
-            padding: 10px 12px;
+        /* 計算結果エリア (折りたたみ式) */
+        .calc-results-accordion {
             background-color: rgba(56, 189, 248, 0.03);
             border-bottom: 1px solid var(--border-color);
-            max-height: 180px;
+        }
+
+        .calc-header {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--accent-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            background-color: rgba(30, 41, 59, 0.5);
+        }
+        .calc-header:hover {
+            background-color: rgba(56, 189, 248, 0.1);
+        }
+
+        .calc-toggle-icon {
+            font-size: 0.7rem;
+            transition: transform 0.2s;
+        }
+
+        .calc-content {
+            padding: 8px 12px;
+            max-height: 160px;
             overflow-y: auto;
+            transition: all 0.2s ease;
+        }
+
+        /* 折りたたまれた状態 */
+        .calc-results-accordion.collapsed .calc-content {
+            display: none;
+        }
+        .calc-results-accordion.collapsed .calc-toggle-icon {
+            transform: rotate(-90deg);
         }
 
         .result-table {
@@ -297,9 +330,7 @@
     </header>
 
     <div class="main-container">
-        <!-- サイドバー -->
         <div class="sidebar">
-            <!-- バイク重ね合わせ管理タブ -->
             <div class="bike-tabs-bar">
                 <div class="tabs-header">
                     <span>重ね合わせ比較リスト (BB基準)</span>
@@ -308,22 +339,26 @@
                 <div class="bike-tabs-list" id="bikeTabsList"></div>
             </div>
 
-            <!-- 計算結果比較テーブル -->
-            <div class="calc-results">
-                <table class="result-table">
-                    <thead>
-                        <tr>
-                            <th>バイク名</th>
-                            <th>サドル〜ハンドル長</th>
-                            <th>サドル〜ハンドルトップ落差</th>
-                            <th>BB〜ハンドルトップ高</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultTableBody"></tbody>
-                </table>
+            <div class="calc-results-accordion" id="calcAccordion">
+                <div class="calc-header" id="calcHeader">
+                    <span>▼ 算出結果比較</span>
+                    <span class="calc-toggle-icon">▼</span>
+                </div>
+                <div class="calc-content">
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>バイク名</th>
+                                <th>サドル〜ハンドル長</th>
+                                <th>サドル〜ハンドルトップ落差</th>
+                                <th>BB〜ハンドルトップ高</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultTableBody"></tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- パラメータ入力フォーム -->
             <div class="inputs-container">
                 <div class="section-title">バイクジオメトリ</div>
                 <div class="input-group"><label for="reach">リーチ</label><div class="input-wrapper"><input type="number" id="reach"><span class="unit">mm</span></div></div>
@@ -348,7 +383,6 @@
             </div>
         </div>
 
-        <!-- メインキャンバス表示エリア -->
         <div class="viewport" id="viewport">
             <canvas id="bikeCanvas"></canvas>
             <div class="controls-hint">ドラッグ/スワイプ: 移動 | ピンチ/ホイール: 拡大縮小</div>
@@ -403,6 +437,13 @@
             acc[id] = document.getElementById(id);
             return acc;
         }, {});
+
+        // --- 折りたたみ機能の処理 ---
+        const calcAccordion = document.getElementById('calcAccordion');
+        const calcHeader = document.getElementById('calcHeader');
+        calcHeader.addEventListener('click', () => {
+            calcAccordion.classList.toggle('collapsed');
+        });
 
         function getActiveBike() {
             return bikes.find(b => b.id === activeBikeId) || bikes[0];
@@ -629,7 +670,6 @@
             const rearAxle = { x: -bData.rearCenter, y: -bData.bbDrop };
             const frontAxle = { x: bData.frontCenter, y: -bData.bbDrop };
 
-            // 指標計算
             const saddleToHandle = Math.sqrt(
                 Math.pow(clampCenter.x - saddleTop.x, 2) + 
                 Math.pow(clampCenter.y - saddleTop.y, 2)
@@ -739,10 +779,7 @@
                 drawLine(handleHood, handleDropPt, mainColor, strokeWidth - 0.5);
 
                 if (isSelected) {
-                    // サドル〜ハンドル直線
                     drawLine(geo.saddleTop, geo.clampCenter, '#38bdf8', 1, [3, 3]);
-                    
-                    // サドル高とハンドルトップ高の水平落差基準線
                     drawLine(geo.saddleTop, {x: geo.barTop.x, y: geo.saddleTop.y}, '#64748b', 1, [2, 2]);
                     drawLine({x: geo.barTop.x, y: geo.saddleTop.y}, geo.barTop, '#f43f5e', 1, [3, 3]);
 
