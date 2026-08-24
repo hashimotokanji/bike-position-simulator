@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>バイクジオメトリ＆ポジション シミュレーター (重ね合わせ比較対応)</title>
+    <title>バイクジオメトリ＆ポジション シミュレーター</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -331,7 +331,7 @@
                 <div class="bike-tabs-list" id="bikeTabsList"></div>
             </div>
 
-            <!-- 計算結果比較エリア (折りたたみ可能) -->
+            <!-- 計算結果エリア (格納・展開可能) -->
             <div class="calc-results" id="calcResults">
                 <button class="calc-toggle-btn" id="btnToggleCalc">
                     <span>▼ 算出結果比較</span>
@@ -370,7 +370,7 @@
                 <div class="section-title">ポジション設定</div>
                 <div class="input-group"><label for="stemLength">ステム長</label><div class="input-wrapper"><input type="number" id="stemLength"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="stemAngle">ステムアングル (0°=垂直, -=下, +=上)</label><div class="input-wrapper"><input type="number" id="stemAngle" step="0.1"><span class="unit">°</span></div></div>
-                <div class="input-group"><label for="handleBarAngle">ハンドル角度 (0°=水平, +=上向き)</label><div class="input-wrapper"><input type="number" id="handleBarAngle" step="0.1"><span class="unit">°</span></div></div>
+                <div class="input-group"><label for="handleBarAngle">ハンドル角度 (0°=水平)</label><div class="input-wrapper"><input type="number" id="handleBarAngle" step="0.1"><span class="unit">°</span></div></div>
                 <div class="input-group"><label for="stemStack">ステムスタックハイト</label><div class="input-wrapper"><input type="number" id="stemStack"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="spacerHeight">ステムスペーサー高さ</label><div class="input-wrapper"><input type="number" id="spacerHeight"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="handleReach">ハンドルリーチ</label><div class="input-wrapper"><input type="number" id="handleReach"><span class="unit">mm</span></div></div>
@@ -657,7 +657,7 @@
                 y: clampCenter.y + 15
             };
 
-            // 修正箇所：ハンドル角度(rad)による先端座標の計算
+            // 赤線（フラット部〜フードトップ部）先端の座標計算
             const barAngleRad = degToRad(bData.handleBarAngle || 0);
             const handleTip = {
                 x: clampCenter.x + bData.handleReach * Math.cos(barAngleRad),
@@ -677,13 +677,13 @@
             const rearAxle = { x: -bData.rearCenter, y: -bData.bbDrop };
             const frontAxle = { x: bData.frontCenter, y: -bData.bbDrop };
 
-            // 指標計算の補正
+            // 指標計算
             const saddleToHandle = Math.sqrt(
                 Math.pow(clampCenter.x - saddleTop.x, 2) + 
                 Math.pow(clampCenter.y - saddleTop.y, 2)
             );
             
-            // 修正箇所：サドルトップ(Y) - ハンドル先端(Y) の垂直落差
+            // 修正箇所：サドルトップ高とハンドル先端高（赤線先端）の垂直落差計算
             const saddleToTipDrop = saddleTop.y - handleTip.y;
             const bbToHandleTop = barTop.y;
             const handleAngleVal = bData.handleBarAngle || 0;
