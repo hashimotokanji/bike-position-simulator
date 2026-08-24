@@ -53,7 +53,7 @@
         }
 
         .sidebar {
-            width: 400px;
+            width: 420px;
             background-color: var(--panel-bg);
             border-right: 1px solid var(--border-color);
             display: flex;
@@ -96,7 +96,7 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-            max-height: 140px;
+            max-height: 120px;
             overflow-y: auto;
         }
 
@@ -125,9 +125,7 @@
             overflow: hidden;
         }
 
-        .tab-left input[type="checkbox"] {
-            cursor: pointer;
-        }
+        .tab-left input[type="checkbox"] { cursor: pointer; }
 
         .tab-color-picker {
             width: 16px;
@@ -161,25 +159,50 @@
         }
         .btn-tab-action:hover { color: var(--text-main); background: rgba(255,255,255,0.1); }
 
-        /* 計算結果エリア */
+        /* 計算結果エリア (格納・展開可能) */
         .calc-results {
-            padding: 10px 12px;
             background-color: rgba(56, 189, 248, 0.03);
             border-bottom: 1px solid var(--border-color);
-            max-height: 180px;
+        }
+
+        .calc-toggle-btn {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(30, 41, 59, 0.6);
+            border: none;
+            color: var(--accent-color);
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .calc-toggle-btn:hover { background: rgba(30, 41, 59, 0.9); }
+
+        .calc-content {
+            padding: 8px 12px;
+            max-height: 160px;
             overflow-y: auto;
+            display: block;
+        }
+
+        .calc-results.collapsed .calc-content {
+            display: none;
         }
 
         .result-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.72rem;
+            font-size: 0.7rem;
         }
 
         .result-table th, .result-table td {
             padding: 4px 4px;
             text-align: left;
             border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            white-space: nowrap;
         }
 
         .result-table th {
@@ -308,19 +331,26 @@
                 <div class="bike-tabs-list" id="bikeTabsList"></div>
             </div>
 
-            <!-- 計算結果比較テーブル -->
-            <div class="calc-results">
-                <table class="result-table">
-                    <thead>
-                        <tr>
-                            <th>バイク名</th>
-                            <th>サドル〜ハンドル長</th>
-                            <th>サドル〜ハンドルトップ落差</th>
-                            <th>BB〜ハンドルトップ高</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultTableBody"></tbody>
-                </table>
+            <!-- 計算結果比較エリア (折りたたみ可能) -->
+            <div class="calc-results" id="calcResults">
+                <button class="calc-toggle-btn" id="btnToggleCalc">
+                    <span>▼ 算出結果比較</span>
+                    <span id="toggleIcon">▲</span>
+                </button>
+                <div class="calc-content">
+                    <table class="result-table">
+                        <thead>
+                            <tr>
+                                <th>バイク名</th>
+                                <th>サドル〜ハンドル長</th>
+                                <th>サドル〜先端落差</th>
+                                <th>ハンドル角度</th>
+                                <th>BB〜ハンドルトップ高</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultTableBody"></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- パラメータ入力フォーム -->
@@ -340,6 +370,7 @@
                 <div class="section-title">ポジション設定</div>
                 <div class="input-group"><label for="stemLength">ステム長</label><div class="input-wrapper"><input type="number" id="stemLength"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="stemAngle">ステムアングル (0°=垂直, -=下, +=上)</label><div class="input-wrapper"><input type="number" id="stemAngle" step="0.1"><span class="unit">°</span></div></div>
+                <div class="input-group"><label for="handleBarAngle">ハンドル角度 (0°=水平)</label><div class="input-wrapper"><input type="number" id="handleBarAngle" step="0.1"><span class="unit">°</span></div></div>
                 <div class="input-group"><label for="stemStack">ステムスタックハイト</label><div class="input-wrapper"><input type="number" id="stemStack"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="spacerHeight">ステムスペーサー高さ</label><div class="input-wrapper"><input type="number" id="spacerHeight"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="handleReach">ハンドルリーチ</label><div class="input-wrapper"><input type="number" id="handleReach"><span class="unit">mm</span></div></div>
@@ -366,8 +397,8 @@
             data: {
                 reach: 385, stack: 540, headAngle: 73, seatAngle: 74, seatTube: 500,
                 rearCenter: 410, frontCenter: 580, bbDrop: 70,
-                wheelbase: 980, headTube: 130, stemLength: 100, stemAngle: -6, stemStack: 40,
-                spacerHeight: 15, handleReach: 80, handleDrop: 125, saddleHeight: 700
+                wheelbase: 980, headTube: 130, stemLength: 100, stemAngle: -6, handleBarAngle: 0,
+                stemStack: 40, spacerHeight: 15, handleReach: 80, handleDrop: 125, saddleHeight: 700
             }
         });
 
@@ -395,7 +426,7 @@
         const inputIds = [
             'reach', 'stack', 'headAngle', 'seatAngle', 'seatTube',
             'rearCenter', 'frontCenter', 'bbDrop', 'wheelbase', 'headTube',
-            'stemLength', 'stemAngle', 'stemStack', 'spacerHeight',
+            'stemLength', 'stemAngle', 'handleBarAngle', 'stemStack', 'spacerHeight',
             'handleReach', 'handleDrop', 'saddleHeight'
         ];
 
@@ -403,6 +434,16 @@
             acc[id] = document.getElementById(id);
             return acc;
         }, {});
+
+        // 結果折りたたみボタン制御
+        const calcResults = document.getElementById('calcResults');
+        const btnToggleCalc = document.getElementById('btnToggleCalc');
+        const toggleIcon = document.getElementById('toggleIcon');
+        
+        btnToggleCalc.addEventListener('click', () => {
+            calcResults.classList.toggle('collapsed');
+            toggleIcon.textContent = calcResults.classList.contains('collapsed') ? '▼' : '▲';
+        });
 
         function getActiveBike() {
             return bikes.find(b => b.id === activeBikeId) || bikes[0];
@@ -616,6 +657,13 @@
                 y: clampCenter.y + 15
             };
 
+            // 赤線（フラット部〜フードトップ部）先端の座標計算
+            const barAngleRad = degToRad(bData.handleBarAngle || 0);
+            const handleTip = {
+                x: clampCenter.x + bData.handleReach * Math.cos(barAngleRad),
+                y: clampCenter.y + bData.handleReach * Math.sin(barAngleRad)
+            };
+
             const htBottomCenter = {
                 x: htTopCenter.x + bData.headTube * Math.cos(htRad),
                 y: htTopCenter.y - bData.headTube * Math.sin(htRad)
@@ -634,13 +682,15 @@
                 Math.pow(clampCenter.x - saddleTop.x, 2) + 
                 Math.pow(clampCenter.y - saddleTop.y, 2)
             );
-            const saddleToHandleDrop = saddleTop.y - barTop.y;
+            // サドルトップ〜ハンドル先端（赤線先端）のY軸落差
+            const saddleToTipDrop = saddleTop.y - handleTip.y;
             const bbToHandleTop = barTop.y;
+            const handleAngleVal = bData.handleBarAngle || 0;
 
             return {
-                saddleTop, htTopCenter, steererPoint, clampCenter, barTop,
+                saddleTop, htTopCenter, steererPoint, clampCenter, barTop, handleTip,
                 htBottomCenter, seatTubeTop, rearAxle, frontAxle,
-                saddleToHandle, saddleToHandleDrop, bbToHandleTop
+                saddleToHandle, saddleToTipDrop, bbToHandleTop, handleAngleVal
             };
         }
 
@@ -701,7 +751,8 @@
                     tr.innerHTML = `
                         <td><strong>${bike.name}</strong></td>
                         <td class="result-val">${geo.saddleToHandle.toFixed(1)} mm</td>
-                        <td class="result-val">${geo.saddleToHandleDrop.toFixed(1)} mm</td>
+                        <td class="result-val">${geo.saddleToTipDrop.toFixed(1)} mm</td>
+                        <td class="result-val">${geo.handleAngleVal.toFixed(1)}°</td>
                         <td class="result-val">${geo.bbToHandleTop.toFixed(1)} mm</td>
                     `;
                     tableBody.appendChild(tr);
@@ -733,22 +784,28 @@
                 drawLine(geo.htTopCenter, geo.steererPoint, mainColor, strokeWidth + 1);
                 drawLine(geo.steererPoint, geo.clampCenter, mainColor, strokeWidth + 2);
 
-                const handleHood = { x: geo.clampCenter.x + bike.data.handleReach, y: geo.clampCenter.y };
-                const handleDropPt = { x: geo.clampCenter.x + bike.data.handleReach - 20, y: geo.clampCenter.y - bike.data.handleDrop };
-                drawLine(geo.clampCenter, handleHood, mainColor, strokeWidth);
-                drawLine(handleHood, handleDropPt, mainColor, strokeWidth - 0.5);
+                // 赤線（ハンドルフラット部/先端）の描画
+                drawLine(geo.clampCenter, geo.handleTip, '#f43f5e', strokeWidth + 1);
+
+                // 下ハン部
+                const barAngleRad = degToRad(bike.data.handleBarAngle || 0);
+                const handleDropPt = { 
+                    x: geo.handleTip.x - 20 * Math.cos(barAngleRad), 
+                    y: geo.handleTip.y - bike.data.handleDrop 
+                };
+                drawLine(geo.handleTip, handleDropPt, mainColor, strokeWidth - 0.5);
 
                 if (isSelected) {
-                    // サドル〜ハンドル直線
+                    // サドル〜ハンドルクランプ直線
                     drawLine(geo.saddleTop, geo.clampCenter, '#38bdf8', 1, [3, 3]);
                     
-                    // サドル高とハンドルトップ高の水平落差基準線
-                    drawLine(geo.saddleTop, {x: geo.barTop.x, y: geo.saddleTop.y}, '#64748b', 1, [2, 2]);
-                    drawLine({x: geo.barTop.x, y: geo.saddleTop.y}, geo.barTop, '#f43f5e', 1, [3, 3]);
+                    // サドルトップ〜赤線先端の落差ガイドライン
+                    drawLine(geo.saddleTop, {x: geo.handleTip.x, y: geo.saddleTop.y}, '#64748b', 1, [2, 2]);
+                    drawLine({x: geo.handleTip.x, y: geo.saddleTop.y}, geo.handleTip, '#f43f5e', 1, [3, 3]);
 
                     drawCircle(geo.clampCenter, 4, '#38bdf8', true);
                     drawCircle(geo.saddleTop, 4, mainColor, true);
-                    drawCircle(geo.barTop, 3, '#f43f5e', true);
+                    drawCircle(geo.handleTip, 4, '#f43f5e', true);
                 }
             });
 
