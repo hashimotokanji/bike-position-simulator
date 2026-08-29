@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>バイクジオメトリ＆ポジション シミュレーター (Bike Insights連携対応)</title>
+    <title>バイクジオメトリ＆ポジション シミュレーター</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -14,15 +14,10 @@
             --border-color: #334155;
         }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            touch-action: manipulation;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             display: flex;
@@ -40,17 +35,9 @@
             align-items: center;
         }
 
-        header h1 {
-            font-size: 1.05rem;
-            font-weight: 600;
-            color: var(--accent-color);
-        }
+        header h1 { font-size: 1.05rem; font-weight: 600; color: var(--accent-color); }
 
-        .main-container {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-        }
+        .main-container { display: flex; flex: 1; overflow: hidden; }
 
         .sidebar {
             width: 400px;
@@ -61,51 +48,48 @@
             z-index: 10;
         }
 
-        /* 外部データインポートエリア */
-        .import-bar {
-            padding: 8px 12px;
-            background-color: rgba(15, 23, 42, 0.6);
+        /* URLインポートエリア */
+        .url-import-bar {
+            padding: 10px 12px;
+            background-color: rgba(56, 189, 248, 0.08);
             border-bottom: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
 
-        .import-title {
+        .url-import-bar label {
             font-size: 0.75rem;
-            color: var(--text-sub);
             font-weight: bold;
+            color: var(--accent-color);
         }
 
-        .import-controls {
-            display: flex;
-            gap: 6px;
-        }
+        .url-input-wrapper { display: flex; gap: 6px; }
 
-        .import-input {
+        .url-input-wrapper input {
             flex: 1;
-            background-color: var(--bg-color);
+            background: var(--bg-color);
             border: 1px solid var(--border-color);
             color: var(--text-main);
-            padding: 4px 8px;
+            padding: 6px 8px;
             border-radius: 4px;
-            font-size: 0.75rem;
+            font-size: 0.8rem;
         }
 
-        .btn-import {
+        .btn-fetch {
             background: #0284c7;
-            color: #fff;
+            color: white;
             border: none;
-            padding: 4px 10px;
+            padding: 6px 12px;
             border-radius: 4px;
-            font-size: 0.75rem;
-            cursor: pointer;
+            font-size: 0.8rem;
             font-weight: bold;
+            cursor: pointer;
             white-space: nowrap;
         }
-        .btn-import:hover { background: #0369a1; }
+        .btn-fetch:hover { background: #0369a1; }
 
-        /* 比較タブ・コントロール */
+        /* 比較タブ */
         .bike-tabs-bar {
             padding: 10px 12px;
             background-color: rgba(15, 23, 42, 0.4);
@@ -125,16 +109,15 @@
         }
 
         .btn-add {
-            background: #334155;
+            background: #0284c7;
             color: #fff;
-            border: 1px solid var(--border-color);
-            padding: 3px 8px;
+            border: none;
+            padding: 4px 10px;
             border-radius: 4px;
             font-size: 0.75rem;
             cursor: pointer;
             font-weight: bold;
         }
-        .btn-add:hover { background: #475569; }
 
         .bike-tabs-list {
             display: flex;
@@ -156,203 +139,54 @@
             font-size: 0.85rem;
         }
 
-        .tab-item.active {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 1px var(--accent-color);
-        }
-
-        .tab-left {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            overflow: hidden;
-        }
-
-        .tab-color-picker {
-            width: 16px;
-            height: 16px;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            background: none;
-        }
-
-        .tab-name {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex: 1;
-        }
-
-        .tab-actions {
-            display: flex;
-            gap: 4px;
-        }
+        .tab-item.active { border-color: var(--accent-color); box-shadow: 0 0 0 1px var(--accent-color); }
+        .tab-left { display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden; }
+        .tab-color-picker { width: 16px; height: 16px; border: none; border-radius: 50%; cursor: pointer; background: none; }
+        .tab-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+        .tab-actions { display: flex; gap: 4px; }
 
         .btn-tab-action {
-            background: transparent;
-            border: none;
-            color: var(--text-sub);
-            cursor: pointer;
-            padding: 2px 4px;
-            font-size: 0.75rem;
-            border-radius: 3px;
+            background: transparent; border: none; color: var(--text-sub);
+            cursor: pointer; padding: 2px 4px; font-size: 0.75rem; border-radius: 3px;
         }
         .btn-tab-action:hover { color: var(--text-main); background: rgba(255,255,255,0.1); }
 
-        /* 計算結果エリア (折りたたみ式) */
-        .calc-results-accordion {
-            background-color: rgba(56, 189, 248, 0.03);
-            border-bottom: 1px solid var(--border-color);
-        }
-
+        /* アコーディオンスタイル */
+        .calc-results-accordion { background-color: rgba(56, 189, 248, 0.03); border-bottom: 1px solid var(--border-color); }
         .calc-header {
-            padding: 8px 12px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            color: var(--accent-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            user-select: none;
-            background-color: rgba(30, 41, 59, 0.5);
+            padding: 8px 12px; font-size: 0.8rem; font-weight: bold; color: var(--accent-color);
+            display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+            user-select: none; background-color: rgba(30, 41, 59, 0.5);
         }
-        .calc-header:hover { background-color: rgba(56, 189, 248, 0.1); }
+        .calc-content { padding: 8px 12px; max-height: 120px; overflow-y: auto; }
+        .calc-results-accordion.collapsed .calc-content { display: none; }
+        .calc-results-accordion.collapsed .calc-toggle-icon { transform: rotate(-90deg); }
 
-        .calc-toggle-icon {
-            font-size: 0.7rem;
-            transition: transform 0.2s;
-        }
+        .result-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+        .result-table th, .result-table td { padding: 4px; text-align: left; border-bottom: 1px solid rgba(51, 65, 85, 0.5); }
+        .result-table th { color: var(--text-sub); }
+        .result-val { font-weight: bold; color: var(--accent-color); }
 
-        .calc-content {
-            padding: 8px 12px;
-            max-height: 140px;
-            overflow-y: auto;
-            transition: all 0.2s ease;
-        }
-
-        /* 初期状態：折りたたみ */
-        .calc-results-accordion.collapsed .calc-content {
-            display: none;
-        }
-        .calc-results-accordion.collapsed .calc-toggle-icon {
-            transform: rotate(-90deg);
-        }
-
-        .result-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.72rem;
-        }
-
-        .result-table th, .result-table td {
-            padding: 4px 4px;
-            text-align: left;
-            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
-        }
-
-        .result-table th {
-            color: var(--text-sub);
-            font-weight: 600;
-        }
-
-        .result-val {
-            font-weight: bold;
-            color: var(--accent-color);
-        }
-
-        /* パラメータ入力フォーム */
-        .inputs-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 12px 16px;
-            -webkit-overflow-scrolling: touch;
-        }
-
+        /* フォーム */
+        .inputs-container { flex: 1; overflow-y: auto; padding: 12px 16px; }
         .section-title {
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin: 12px 0 8px 0;
-            padding-bottom: 4px;
-            border-bottom: 2px solid var(--border-color);
-            color: var(--accent-color);
+            font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+            margin: 12px 0 8px 0; padding-bottom: 4px; border-bottom: 2px solid var(--border-color); color: var(--accent-color);
         }
         .section-title:first-child { margin-top: 0; }
-
-        .input-group {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-        }
-
-        .input-group label {
-            font-size: 0.8rem;
-            color: var(--text-main);
-        }
-
-        .input-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
+        .input-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .input-group label { font-size: 0.8rem; color: var(--text-main); }
+        .input-wrapper { display: flex; align-items: center; gap: 6px; }
         .input-group input {
-            width: 75px;
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 4px 6px;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            text-align: right;
+            width: 75px; background-color: var(--bg-color); border: 1px solid var(--border-color);
+            color: var(--text-main); padding: 4px 6px; border-radius: 4px; font-size: 0.85rem; text-align: right;
         }
+        .input-group input:focus { outline: none; border-color: var(--accent-color); }
+        .input-group span.unit { font-size: 0.7rem; color: var(--text-sub); width: 20px; }
 
-        .input-group input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
-
-        .input-group span.unit {
-            font-size: 0.7rem;
-            color: var(--text-sub);
-            width: 20px;
-        }
-
-        /* 描画エリア */
-        .viewport {
-            flex: 1;
-            position: relative;
-            background-color: var(--bg-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            touch-action: none;
-        }
-
-        canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-
-        .controls-hint {
-            position: absolute;
-            bottom: 12px;
-            right: 12px;
-            background: rgba(30, 41, 59, 0.85);
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            color: var(--text-sub);
-            pointer-events: none;
-            border: 1px solid var(--border-color);
-        }
+        .viewport { flex: 1; position: relative; background-color: var(--bg-color); display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: none; }
+        canvas { width: 100%; height: 100%; display: block; }
+        .controls-hint { position: absolute; bottom: 12px; right: 12px; background: rgba(30, 41, 59, 0.85); padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; color: var(--text-sub); pointer-events: none; border: 1px solid var(--border-color); }
 
         @media (max-width: 768px) {
             .main-container { flex-direction: column-reverse; }
@@ -368,27 +202,26 @@
     </header>
 
     <div class="main-container">
-        <!-- サイドバー -->
         <div class="sidebar">
-            <!-- URL / ID インポートエリア -->
-            <div class="import-bar">
-                <div class="import-title">Bike Insights 比較URL / ID解析読み込み</div>
-                <div class="import-controls">
-                    <input type="text" id="importUrlInput" class="import-input" placeholder="URLまたはID (例: 68eb85842c...)">
-                    <button class="btn-import" id="btnImport">読み込み</button>
+            <!-- URL自動読み込みエリア -->
+            <div class="url-import-bar">
+                <label for="bikeUrl">Bike Insights URL インポート</label>
+                <div class="url-input-wrapper">
+                    <input type="text" id="bikeUrl" placeholder="https://bikeinsights.com/bikes/..." />
+                    <button class="btn-fetch" id="btnFetchUrl">自動取得</button>
                 </div>
             </div>
 
-            <!-- バイク重ね合わせ管理タブ -->
+            <!-- バイク重ね合わせ管理 -->
             <div class="bike-tabs-bar">
                 <div class="tabs-header">
-                    <span>比較モデル一覧 (BB基準)</span>
-                    <button class="btn-add" id="btnAddBike">+ 新規手動入力</button>
+                    <span>重ね合わせ比較リスト (BB基準)</span>
+                    <button class="btn-add" id="btnAddBike">+ バイク追加</button>
                 </div>
                 <div class="bike-tabs-list" id="bikeTabsList"></div>
             </div>
 
-            <!-- 計算結果比較エリア (初期状態: 折りたたみ) -->
+            <!-- 計算結果比較エリア -->
             <div class="calc-results-accordion collapsed" id="calcAccordion">
                 <div class="calc-header" id="calcHeader">
                     <span>▶ 算出結果比較（クリックで開閉）</span>
@@ -409,9 +242,9 @@
                 </div>
             </div>
 
-            <!-- パラメータ手動入力フォーム -->
+            <!-- パラメータ入力フォーム -->
             <div class="inputs-container">
-                <div class="section-title">手動ジオメトリ設定</div>
+                <div class="section-title">ジオメトリ設定</div>
                 <div class="input-group"><label for="reach">リーチ</label><div class="input-wrapper"><input type="number" id="reach"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="stack">スタック</label><div class="input-wrapper"><input type="number" id="stack"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="headAngle">ヘッドアングル</label><div class="input-wrapper"><input type="number" id="headAngle" step="0.1"><span class="unit">°</span></div></div>
@@ -434,10 +267,9 @@
             </div>
         </div>
 
-        <!-- 描画エリア -->
         <div class="viewport" id="viewport">
             <canvas id="bikeCanvas"></canvas>
-            <div class="controls-hint">ドラッグ/スワイプ: 移動 | ピンチ/ホイール: 拡大縮小</div>
+            <div class="controls-hint">ドラッグ: 移動 | ホイール/ピンチ: 拡大縮小</div>
         </div>
     </div>
 
@@ -458,8 +290,8 @@
         });
 
         let bikes = [
-            createDefaultBike('1', 'モデル A (標準)', PRESET_COLORS[0]),
-            createDefaultBike('2', 'モデル B (ロング)', PRESET_COLORS[1], { reach: 395, stack: 550, stemLength: 110 })
+            createDefaultBike('1', 'バイク 1', PRESET_COLORS[0]),
+            createDefaultBike('2', 'バイク 2', PRESET_COLORS[1], { reach: 395, stack: 550, stemLength: 110 })
         ];
 
         let activeBikeId = '1';
@@ -469,11 +301,8 @@
         const viewport = document.getElementById('viewport');
 
         let scale = 0.8;
-        let panX = 0;
-        let panY = 0;
-        let isDragging = false;
-        let startX, startY;
-        let initialPinchDistance = null;
+        let panX = 0, panY = 0;
+        let isDragging = false, startX, startY;
 
         const inputIds = [
             'reach', 'stack', 'headAngle', 'seatAngle', 'seatTube',
@@ -487,7 +316,78 @@
             return acc;
         }, {});
 
-        // --- アコーディオン表示制御 ---
+        // --- CORSプロキシ経由で自動解析スクレイピング ---
+        document.getElementById('btnFetchUrl').addEventListener('click', async () => {
+            const urlInput = document.getElementById('bikeUrl').value.trim();
+            if (!urlInput) {
+                alert('URLを入力してください。');
+                return;
+            }
+
+            const btn = document.getElementById('btnFetchUrl');
+            btn.textContent = '取得中...';
+            btn.disabled = true;
+
+            try {
+                // CORSプロキシを利用してHTMLソースを取得
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(urlInput)}`;
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error('ページデータを取得できませんでした。');
+
+                const htmlText = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, 'text/html');
+
+                // タイトルの自動パース
+                const titleEl = doc.querySelector('h1') || doc.querySelector('title');
+                let bikeName = titleEl ? titleEl.textContent.trim().split('|')[0] : 'インポートバイク';
+
+                // DOMから数値をスクレイピングする簡易パーサー
+                const extracted = {};
+                const textNodes = doc.body.innerText || doc.body.textContent;
+                
+                // Bike Insights上のテーブル項目キーワードで数値を検索
+                const extractVal = (pattern) => {
+                    const match = textNodes.match(pattern);
+                    return match ? parseFloat(match[1]) : null;
+                };
+
+                extracted.reach = extractVal(/Reach\s*[\n:]*\s*(\d+(\.\d+)?)/i);
+                extracted.stack = extractVal(/Stack\s*[\n:]*\s*(\d+(\.\d+)?)/i);
+                extracted.headAngle = extractVal(/Head Tube Angle\s*[\n:]*\s*(\d+(\.\d+)?)/i);
+                extracted.seatAngle = extractVal(/Seat Tube Angle\s*[\n:]*\s*(\d+(\.\d+)?)/i);
+                extracted.bbDrop = extractVal(/BB Drop\s*[\n:]*\s*(\d+(\.\d+)?)/i);
+                extracted.chainstay = extractVal(/Chainstay Length\s*[\n:]*\s*(\d+(\.\d+)?)/i);
+                extracted.wheelbase = extractVal(/Wheelbase\s*[\n:]*\s*(\d+(\.\d+)?)/i);
+                extracted.headTube = extractVal(/Head Tube Length\s*[\n:]*\s*(\d+(\.\d+)?)/i);
+
+                const currentBike = getActiveBike();
+                currentBike.name = bikeName;
+
+                // 取得できた項目のみフォームに更新
+                if (extracted.reach) currentBike.data.reach = extracted.reach;
+                if (extracted.stack) currentBike.data.stack = extracted.stack;
+                if (extracted.headAngle) currentBike.data.headAngle = extracted.headAngle;
+                if (extracted.seatAngle) currentBike.data.seatAngle = extracted.seatAngle;
+                if (extracted.bbDrop) currentBike.data.bbDrop = extracted.bbDrop;
+                if (extracted.chainstay) currentBike.data.rearCenter = extracted.chainstay;
+                if (extracted.wheelbase) currentBike.data.wheelbase = extracted.wheelbase;
+                if (extracted.headTube) currentBike.data.headTube = extracted.headTube;
+
+                loadInputsFromActiveBike();
+                renderTabs();
+                draw();
+                alert(`「${bikeName}」のデータを取得・反映しました！`);
+
+            } catch (err) {
+                console.error(err);
+                alert('自動取得に失敗しました。URLが正しいか確認するか、手動入力をお試しください。');
+            } finally {
+                btn.textContent = '自動取得';
+                btn.disabled = false;
+            }
+        });
+
         const calcAccordion = document.getElementById('calcAccordion');
         const calcHeader = document.getElementById('calcHeader');
         calcHeader.addEventListener('click', () => {
@@ -496,85 +396,40 @@
             calcHeader.querySelector('span').textContent = isCollapsed ? '▶ 算出結果比較（クリックで開閉）' : '▼ 算出結果比較';
         });
 
-        // --- URL / ID 解析機能 ---
-        document.getElementById('btnImport').addEventListener('click', () => {
-            const rawVal = document.getElementById('importUrlInput').value.trim();
-            if (!rawVal) return;
-
-            let ids = [];
-            if (rawVal.includes('geometries=')) {
-                const param = rawVal.split('geometries=')[1].split('&')[0];
-                ids = param.split(',');
-            } else {
-                ids = rawVal.split(',').map(s => s.trim());
-            }
-
-            ids.forEach((geoId, idx) => {
-                if (!geoId) return;
-                const newId = String(Date.now()) + idx;
-                const newColor = PRESET_COLORS[bikes.length % PRESET_COLORS.length];
-                
-                // IDに基づいてシミュレートされたジオメトリデータを設定
-                const mockBike = createDefaultBike(newId, `ID: ${geoId.substring(0, 8)}...`, newColor, {
-                    reach: 380 + (idx * 12),
-                    stack: 530 + (idx * 15),
-                    headAngle: 72.5 + (idx * 0.5),
-                    seatAngle: 73.5
-                });
-                bikes.push(mockBike);
-            });
-
-            activeBikeId = bikes[bikes.length - 1].id;
-            loadInputsFromActiveBike();
-            renderTabs();
-            draw();
-            document.getElementById('importUrlInput').value = '';
-        });
-
-        function getActiveBike() {
-            return bikes.find(b => b.id === activeBikeId) || bikes[0];
-        }
+        function getActiveBike() { return bikes.find(b => b.id === activeBikeId) || bikes[0]; }
 
         function loadInputsFromActiveBike() {
             const bike = getActiveBike();
             if (!bike) return;
-            inputIds.forEach(id => {
-                if (inputs[id]) inputs[id].value = bike.data[id];
-            });
+            inputIds.forEach(id => { if (inputs[id]) inputs[id].value = bike.data[id]; });
         }
 
         function updateActiveBikeFromInputs() {
             const bike = getActiveBike();
             if (!bike) return;
-            inputIds.forEach(id => {
-                if (inputs[id]) bike.data[id] = parseFloat(inputs[id].value) || 0;
-            });
+            inputIds.forEach(id => { if (inputs[id]) bike.data[id] = parseFloat(inputs[id].value) || 0; });
             renderTabs();
             draw();
         }
 
-        inputIds.forEach(id => {
-            inputs[id].addEventListener('input', updateActiveBikeFromInputs);
-        });
+        inputIds.forEach(id => inputs[id].addEventListener('input', updateActiveBikeFromInputs));
 
         function renderTabs() {
             const container = document.getElementById('bikeTabsList');
             container.innerHTML = '';
-
             bikes.forEach(bike => {
                 const isActive = bike.id === activeBikeId;
                 const tab = document.createElement('div');
                 tab.className = `tab-item ${isActive ? 'active' : ''}`;
-                
                 tab.innerHTML = `
                     <div class="tab-left">
-                        <input type="checkbox" ${bike.visible ? 'checked' : ''} class="chk-visible" title="表示/非表示">
-                        <input type="color" value="${bike.color}" class="tab-color-picker" title="カラー変更">
+                        <input type="checkbox" ${bike.visible ? 'checked' : ''} class="chk-visible">
+                        <input type="color" value="${bike.color}" class="tab-color-picker">
                         <span class="tab-name">${bike.name}</span>
                     </div>
                     <div class="tab-actions">
-                        <button class="btn-tab-action btn-clone" title="複製">📋</button>
-                        ${bikes.length > 1 ? `<button class="btn-tab-action btn-del" title="削除">✕</button>` : ''}
+                        <button class="btn-tab-action btn-clone">📋</button>
+                        ${bikes.length > 1 ? `<button class="btn-tab-action btn-del">✕</button>` : ''}
                     </div>
                 `;
 
@@ -586,30 +441,13 @@
                     draw();
                 });
 
-                tab.querySelector('.chk-visible').addEventListener('change', (e) => {
-                    bike.visible = e.target.checked;
-                    draw();
-                });
-
-                tab.querySelector('.tab-color-picker').addEventListener('input', (e) => {
-                    bike.color = e.target.value;
-                    renderTabs();
-                    draw();
-                });
-
+                tab.querySelector('.chk-visible').addEventListener('change', (e) => { bike.visible = e.target.checked; draw(); });
+                tab.querySelector('.tab-color-picker').addEventListener('input', (e) => { bike.color = e.target.value; renderTabs(); draw(); });
                 tab.querySelector('.btn-clone').addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const newId = String(Date.now());
-                    const newColor = PRESET_COLORS[bikes.length % PRESET_COLORS.length];
-                    const newBike = {
-                        id: newId,
-                        name: `${bike.name} (複製)`,
-                        color: newColor,
-                        visible: true,
-                        data: JSON.parse(JSON.stringify(bike.data))
-                    };
+                    const newBike = { id: String(Date.now()), name: `${bike.name} (複製)`, color: PRESET_COLORS[bikes.length % PRESET_COLORS.length], visible: true, data: JSON.parse(JSON.stringify(bike.data)) };
                     bikes.push(newBike);
-                    activeBikeId = newId;
+                    activeBikeId = newBike.id;
                     loadInputsFromActiveBike();
                     renderTabs();
                     draw();
@@ -626,17 +464,14 @@
                         draw();
                     });
                 }
-
                 container.appendChild(tab);
             });
         }
 
         document.getElementById('btnAddBike').addEventListener('click', () => {
-            const newId = String(Date.now());
-            const newColor = PRESET_COLORS[bikes.length % PRESET_COLORS.length];
-            const newBike = createDefaultBike(newId, `カスタム ${bikes.length + 1}`, newColor);
+            const newBike = createDefaultBike(String(Date.now()), `バイク ${bikes.length + 1}`, PRESET_COLORS[bikes.length % PRESET_COLORS.length]);
             bikes.push(newBike);
-            activeBikeId = newId;
+            activeBikeId = newBike.id;
             loadInputsFromActiveBike();
             renderTabs();
             draw();
@@ -653,27 +488,12 @@
         }
 
         window.addEventListener('resize', resizeCanvas);
-
-        viewport.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startX = e.clientX - panX;
-            startY = e.clientY - panY;
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            panX = e.clientX - startX;
-            panY = e.clientY - startY;
-            draw();
-        });
-
+        viewport.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX - panX; startY = e.clientY - panY; });
+        window.addEventListener('mousemove', (e) => { if (!isDragging) return; panX = e.clientX - startX; panY = e.clientY - startY; draw(); });
         window.addEventListener('mouseup', () => isDragging = false);
-
         viewport.addEventListener('wheel', (e) => {
             e.preventDefault();
-            const zoomFactor = 1.05;
-            if (e.deltaY < 0) scale *= zoomFactor;
-            else scale /= zoomFactor;
+            if (e.deltaY < 0) scale *= 1.05; else scale /= 1.05;
             draw();
         }, { passive: false });
 
@@ -683,92 +503,46 @@
             const stRad = degToRad(bData.seatAngle);
             const htRad = degToRad(bData.headAngle);
 
-            const saddleTop = {
-                x: -bData.saddleHeight * Math.cos(stRad),
-                y: bData.saddleHeight * Math.sin(stRad)
-            };
-
+            const saddleTop = { x: -bData.saddleHeight * Math.cos(stRad), y: bData.saddleHeight * Math.sin(stRad) };
             const htTopCenter = { x: bData.reach, y: bData.stack };
             const steererDist = bData.spacerHeight + (bData.stemStack / 2);
-            const steererPoint = {
-                x: htTopCenter.x - steererDist * Math.cos(htRad),
-                y: htTopCenter.y + steererDist * Math.sin(htRad)
-            };
-
+            const steererPoint = { x: htTopCenter.x - steererDist * Math.cos(htRad), y: htTopCenter.y + steererDist * Math.sin(htRad) };
             const stemTotalAngleRad = degToRad(90 - bData.headAngle + bData.stemAngle);
-            const clampCenter = {
-                x: steererPoint.x + bData.stemLength * Math.cos(stemTotalAngleRad),
-                y: steererPoint.y + bData.stemLength * Math.sin(stemTotalAngleRad)
-            };
+            const clampCenter = { x: steererPoint.x + bData.stemLength * Math.cos(stemTotalAngleRad), y: steererPoint.y + bData.stemLength * Math.sin(stemTotalAngleRad) };
 
             const barTop = { x: clampCenter.x, y: clampCenter.y + 15 };
-            const htBottomCenter = {
-                x: htTopCenter.x + bData.headTube * Math.cos(htRad),
-                y: htTopCenter.y - bData.headTube * Math.sin(htRad)
-            };
+            const htBottomCenter = { x: htTopCenter.x + bData.headTube * Math.cos(htRad), y: htTopCenter.y - bData.headTube * Math.sin(htRad) };
+            const seatTubeTop = { x: -bData.seatTube * Math.cos(stRad), y: bData.seatTube * Math.sin(stRad) };
 
-            const seatTubeTop = {
-                x: -bData.seatTube * Math.cos(stRad),
-                y: bData.seatTube * Math.sin(stRad)
-            };
-
-            const rearAxle = { x: -bData.rearCenter, y: -bData.bbDrop };
-            const frontAxle = { x: bData.frontCenter, y: -bData.bbDrop };
+            const rearAxle = { x: -bData.rearCenter, y: bData.bbDrop };
+            const frontAxle = { x: bData.frontCenter, y: bData.bbDrop };
 
             const saddleToHandle = Math.sqrt(Math.pow(clampCenter.x - saddleTop.x, 2) + Math.pow(clampCenter.y - saddleTop.y, 2));
             const saddleToHandleDrop = saddleTop.y - barTop.y;
             const bbToHandleTop = barTop.y;
 
-            return {
-                saddleTop, htTopCenter, steererPoint, clampCenter, barTop,
-                htBottomCenter, seatTubeTop, rearAxle, frontAxle,
-                saddleToHandle, saddleToHandleDrop, bbToHandleTop
-            };
+            return { saddleTop, htTopCenter, steererPoint, clampCenter, barTop, htBottomCenter, seatTubeTop, rearAxle, frontAxle, saddleToHandle, saddleToHandleDrop, bbToHandleTop };
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const toPx = (pt) => ({ x: panX + pt.x * scale, y: panY - pt.y * scale });
 
-            const toPx = (pt) => ({
-                x: panX + pt.x * scale,
-                y: panY - pt.y * scale
-            });
-
-            ctx.strokeStyle = '#1e293b';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
             const gridSize = 100 * scale;
-            for (let x = panX % gridSize; x < canvas.width; x += gridSize) {
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-            }
-            for (let y = panY % gridSize; y < canvas.height; y += gridSize) {
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-            }
+            for (let x = panX % gridSize; x < canvas.width; x += gridSize) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+            for (let y = panY % gridSize; y < canvas.height; y += gridSize) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
 
             const drawLine = (pt1, pt2, color, width = 2, dash = []) => {
                 const p1 = toPx(pt1), p2 = toPx(pt2);
-                ctx.save();
-                ctx.beginPath();
-                ctx.setLineDash(dash);
-                ctx.moveTo(p1.x, p1.y);
-                ctx.lineTo(p2.x, p2.y);
-                ctx.strokeStyle = color;
-                ctx.lineWidth = width;
-                ctx.stroke();
-                ctx.restore();
+                ctx.save(); ctx.beginPath(); ctx.setLineDash(dash); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke(); ctx.restore();
             };
 
             const drawCircle = (pt, radius, color, isFill = false) => {
                 const p = toPx(pt);
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, radius * scale, 0, Math.PI * 2);
-                if (isFill) {
-                    ctx.fillStyle = color;
-                    ctx.fill();
-                } else {
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                }
+                ctx.beginPath(); ctx.arc(p.x, p.y, radius * scale, 0, Math.PI * 2);
+                if (isFill) { ctx.fillStyle = color; ctx.fill(); } else { ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke(); }
             };
 
             const tableBody = document.getElementById('resultTableBody');
@@ -780,12 +554,7 @@
                 if (bike.visible) {
                     const tr = document.createElement('tr');
                     tr.style.color = bike.color;
-                    tr.innerHTML = `
-                        <td><strong>${bike.name}</strong></td>
-                        <td class="result-val">${geo.saddleToHandle.toFixed(1)} mm</td>
-                        <td class="result-val">${geo.saddleToHandleDrop.toFixed(1)} mm</td>
-                        <td class="result-val">${geo.bbToHandleTop.toFixed(1)} mm</td>
-                    `;
+                    tr.innerHTML = `<td><strong>${bike.name}</strong></td><td class="result-val">${geo.saddleToHandle.toFixed(1)} mm</td><td class="result-val">${geo.saddleToHandleDrop.toFixed(1)} mm</td><td class="result-val">${geo.bbToHandleTop.toFixed(1)} mm</td>`;
                     tableBody.appendChild(tr);
                 }
 
@@ -808,9 +577,7 @@
                 drawLine(geo.htBottomCenter, geo.frontAxle, mainColor, strokeWidth, lineDash);
 
                 drawLine({x:0, y:0}, geo.saddleTop, mainColor, strokeWidth, lineDash);
-                const saddleLeft = { x: geo.saddleTop.x - 130, y: geo.saddleTop.y };
-                const saddleRight = { x: geo.saddleTop.x + 140, y: geo.saddleTop.y };
-                drawLine(saddleLeft, saddleRight, mainColor, strokeWidth + 2);
+                drawLine({ x: geo.saddleTop.x - 130, y: geo.saddleTop.y }, { x: geo.saddleTop.x + 140, y: geo.saddleTop.y }, mainColor, strokeWidth + 2);
 
                 drawLine(geo.htTopCenter, geo.steererPoint, mainColor, strokeWidth + 1);
                 drawLine(geo.steererPoint, geo.clampCenter, mainColor, strokeWidth + 2);
