@@ -45,7 +45,6 @@
             z-index: 10;
         }
 
-        /* 共通アコーディオン（折りたたみ）スタイル */
         .accordion {
             border-bottom: 1px solid var(--border-color);
             background-color: rgba(15, 23, 42, 0.4);
@@ -64,17 +63,9 @@
             background-color: rgba(30, 41, 59, 0.5);
         }
 
-        .accordion-header:hover {
-            background-color: rgba(56, 189, 248, 0.08);
-        }
-
-        .accordion-content {
-            padding: 10px 12px;
-        }
-
-        .accordion.collapsed .accordion-content {
-            display: none;
-        }
+        .accordion-header:hover { background-color: rgba(56, 189, 248, 0.08); }
+        .accordion-content { padding: 10px 12px; }
+        .accordion.collapsed .accordion-content { display: none; }
 
         .accordion-toggle-icon {
             transition: transform 0.2s ease;
@@ -82,11 +73,8 @@
             color: var(--text-sub);
         }
 
-        .accordion.collapsed .accordion-toggle-icon {
-            transform: rotate(-90deg);
-        }
+        .accordion.collapsed .accordion-toggle-icon { transform: rotate(-90deg); }
 
-        /* バイク一覧スタイリング */
         .tabs-header-title {
             display: flex;
             align-items: center;
@@ -105,7 +93,6 @@
             cursor: pointer;
             font-weight: bold;
         }
-        .btn-add:hover { background: #0369a1; }
 
         .bike-tabs-list {
             display: flex;
@@ -137,15 +124,12 @@
             background: transparent; border: none; color: var(--text-sub);
             cursor: pointer; padding: 2px 4px; font-size: 0.75rem; border-radius: 3px;
         }
-        .btn-tab-action:hover { color: var(--text-main); background: rgba(255,255,255,0.1); }
 
-        /* 算出結果テーブル */
         .result-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
         .result-table th, .result-table td { padding: 4px; text-align: left; border-bottom: 1px solid rgba(51, 65, 85, 0.5); }
         .result-table th { color: var(--text-sub); }
         .result-val { font-weight: bold; color: var(--accent-color); }
 
-        /* 数値入力フォームエリア */
         .inputs-container { flex: 1; overflow-y: auto; padding: 12px 16px; }
         .section-title {
             font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
@@ -162,8 +146,17 @@
         .input-group input:focus { outline: none; border-color: var(--accent-color); }
         .input-group span.unit { font-size: 0.7rem; color: var(--text-sub); width: 20px; }
 
-        .viewport { flex: 1; position: relative; background-color: var(--bg-color); display: flex; justify-content: center; align-items: center; overflow: hidden; touch-action: none; }
-        canvas { width: 100%; height: 100%; display: block; }
+        .viewport {
+            flex: 1;
+            position: relative;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            touch-action: none; /* スマホでのデフォルトスクロールを禁止 */
+        }
+        canvas { width: 100%; height: 100%; display: block; touch-action: none; }
         .controls-hint { position: absolute; bottom: 12px; right: 12px; background: rgba(30, 41, 59, 0.85); padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; color: var(--text-sub); pointer-events: none; border: 1px solid var(--border-color); }
 
         @media (max-width: 768px) {
@@ -181,10 +174,8 @@
 
     <div class="main-container">
         <div class="sidebar">
-            
-            <!-- 重ね合わせ比較リスト（折りたたみ対応） -->
             <div class="accordion" id="bikeListAccordion">
-                <div class="accordion-header" id="bikeListHeader">
+                <div class="accordion-header">
                     <div class="tabs-header-title">
                         <span id="bikeListTitle">▼ 比較バイク一覧 (BB基準)</span>
                         <button class="btn-add" id="btnAddBike">+ 追加</button>
@@ -196,9 +187,8 @@
                 </div>
             </div>
 
-            <!-- 算出結果比較（折りたたみ対応） -->
             <div class="accordion collapsed" id="calcAccordion">
-                <div class="accordion-header" id="calcHeader">
+                <div class="accordion-header">
                     <span id="calcTitle">▶ 算出結果比較</span>
                     <span class="accordion-toggle-icon">▼</span>
                 </div>
@@ -217,7 +207,6 @@
                 </div>
             </div>
 
-            <!-- 入力フォームエリア -->
             <div class="inputs-container">
                 <div class="section-title">ジオメトリ設定</div>
                 <div class="input-group"><label for="reach">リーチ</label><div class="input-wrapper"><input type="number" id="reach"><span class="unit">mm</span></div></div>
@@ -244,7 +233,7 @@
 
         <div class="viewport" id="viewport">
             <canvas id="bikeCanvas"></canvas>
-            <div class="controls-hint">ドラッグ: 移動 | ホイール/ピンチ: 拡大縮小</div>
+            <div class="controls-hint">1本指ドラッグ: 移動 | 2本指ピンチ: 拡大縮小</div>
         </div>
     </div>
 
@@ -277,7 +266,6 @@
 
         let scale = 0.8;
         let panX = 0, panY = 0;
-        let isDragging = false, startX, startY;
 
         const inputIds = [
             'reach', 'stack', 'headAngle', 'seatAngle', 'seatTube',
@@ -291,14 +279,13 @@
             return acc;
         }, {});
 
-        // 折りたたみアコーディオン制御
         const setupAccordion = (accId, titleId, openLabel, closeLabel) => {
             const acc = document.getElementById(accId);
             const header = acc.querySelector('.accordion-header');
             const titleSpan = document.getElementById(titleId);
 
             header.addEventListener('click', (e) => {
-                if (e.target.classList.contains('btn-add')) return; // 追加ボタンクリック時は展開/格納しない
+                if (e.target.classList.contains('btn-add')) return;
                 acc.classList.toggle('collapsed');
                 const isCollapsed = acc.classList.contains('collapsed');
                 titleSpan.textContent = isCollapsed ? closeLabel : openLabel;
@@ -401,9 +388,50 @@
         }
 
         window.addEventListener('resize', resizeCanvas);
-        viewport.addEventListener('mousedown', (e) => { isDragging = true; startX = e.clientX - panX; startY = e.clientY - panY; });
-        window.addEventListener('mousemove', (e) => { if (!isDragging) return; panX = e.clientX - startX; panY = e.clientY - startY; draw(); });
-        window.addEventListener('mouseup', () => isDragging = false);
+
+        /* --- ポインター（タッチ＆マウス対応）イベントハンドラ --- */
+        let activePointers = [];
+        let initialPinchDistance = null;
+        let initialScale = scale;
+
+        const getDistance = (p1, p2) => Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
+
+        viewport.addEventListener('pointerdown', (e) => {
+            activePointers.push(e);
+            if (activePointers.length === 2) {
+                initialPinchDistance = getDistance(activePointers[0], activePointers[1]);
+                initialScale = scale;
+            }
+        });
+
+        viewport.addEventListener('pointermove', (e) => {
+            const idx = activePointers.findIndex(p => p.pointerId === e.pointerId);
+            if (idx !== -1) activePointers[idx] = e;
+
+            if (activePointers.length === 1) {
+                // シングルタッチ/ドラッグ（移動）
+                panX += e.movementX;
+                panY += e.movementY;
+                draw();
+            } else if (activePointers.length === 2 && initialPinchDistance) {
+                // ピンチ（拡大縮小）
+                const currentDist = getDistance(activePointers[0], activePointers[1]);
+                const newScale = initialScale * (currentDist / initialPinchDistance);
+                if (newScale > 0.2 && newScale < 5) {
+                    scale = newScale;
+                    draw();
+                }
+            }
+        });
+
+        const removePointer = (e) => {
+            activePointers = activePointers.filter(p => p.pointerId !== e.pointerId);
+            if (activePointers.length < 2) initialPinchDistance = null;
+        };
+
+        viewport.addEventListener('pointerup', removePointer);
+        viewport.addEventListener('pointercancel', removePointer);
+
         viewport.addEventListener('wheel', (e) => {
             e.preventDefault();
             if (e.deltaY < 0) scale *= 1.05; else scale /= 1.05;
