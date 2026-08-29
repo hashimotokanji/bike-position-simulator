@@ -66,14 +66,16 @@
 
         .import-input-wrapper { display: flex; gap: 6px; }
 
-        .import-input-wrapper input {
+        .import-input-wrapper textarea {
             flex: 1;
+            height: 48px;
             background: var(--bg-color);
             border: 1px solid var(--border-color);
             color: var(--text-main);
             padding: 6px 8px;
             border-radius: 4px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
+            resize: none;
         }
 
         .btn-import {
@@ -201,12 +203,12 @@
 
     <div class="main-container">
         <div class="sidebar">
-            <!-- データ貼り付け一括読み込み -->
+            <!-- テキストそのまま貼り付け一括解析 -->
             <div class="import-bar">
-                <label for="importData">Bike Insights データ貼り付け</label>
+                <label for="importData">Bike Insights 画面の文字をコピーして貼付</label>
                 <div class="import-input-wrapper">
-                    <input type="text" id="importData" placeholder="コピーしたJSONデータを貼り付け" />
-                    <button class="btn-import" id="btnImport">反映</button>
+                    <textarea id="importData" placeholder="Bike Insights のジオメトリ表周辺をまるごと選択・コピーしてここに貼り付け"></textarea>
+                    <button class="btn-import" id="btnImport">解析</button>
                 </div>
             </div>
 
@@ -311,29 +313,52 @@
             return acc;
         }, {});
 
-        // JSON一括読み込み処理
+        // テキストからの高度な幾何数値自動解析処理
         document.getElementById('btnImport').addEventListener('click', () => {
-            const raw = document.getElementById('importData').value.trim();
-            if (!raw) return alert('データを入力してください。');
+            const rawText = document.getElementById('importData').value;
+            if (!rawText.trim()) return alert('コピーしたテキストを貼り付けてください。');
 
-            try {
-                const parsed = JSON.parse(raw);
-                const current = getActiveBike();
+            const current = getActiveBike();
+            const lines = rawText.split(/\n+/);
+            let updatedCount = 0;
 
-                if (parsed.name) current.name = parsed.name;
-                Object.keys(parsed).forEach(k => {
-                    if (current.data.hasOwnProperty(k) && !isNaN(parsed[k])) {
-                        current.data[k] = parseFloat(parsed[k]);
-                    }
-                });
+            const extractNum = (str) => {
+                const match = str.match(/(\d+(\.\d+)?)/);
+                return match ? parseFloat(match[1]) : null;
+            };
 
+            lines.forEach((line) => {
+                const l = line.toLowerCase();
+                
+                if (l.includes('reach')) {
+                    const v = extractNum(line); if (v && v > 200 && v < 600) { current.data.reach = v; updatedCount++; }
+                } else if (l.includes('stack')) {
+                    const v = extractNum(line); if (v && v > 300 && v < 800) { current.data.stack = v; updatedCount++; }
+                } else if (l.includes('head tube angle') || l.includes('head angle')) {
+                    const v = extractNum(line); if (v && v > 60 && v < 80) { current.data.headAngle = v; updatedCount++; }
+                } else if (l.includes('seat tube angle') || l.includes('seat angle')) {
+                    const v = extractNum(line); if (v && v > 60 && v < 85) { current.data.seatAngle = v; updatedCount++; }
+                } else if (l.includes('bb drop')) {
+                    const v = extractNum(line); if (v && v > 10 && v < 120) { current.data.bbDrop = v; updatedCount++; }
+                } else if (l.includes('chainstay') || l.includes('rear center')) {
+                    const v = extractNum(line); if (v && v > 300 && v < 600) { current.data.rearCenter = v; updatedCount++; }
+                } else if (l.includes('wheelbase')) {
+                    const v = extractNum(line); if (v && v > 800 && v < 1300) { current.data.wheelbase = v; updatedCount++; }
+                } else if (l.includes('head tube length') || l.includes('head tube')) {
+                    const v = extractNum(line); if (v && v > 50 && v < 300) { current.data.headTube = v; updatedCount++; }
+                } else if (l.includes('seat tube length') || l.includes('seat tube')) {
+                    const v = extractNum(line); if (v && v > 300 && v < 700) { current.data.seatTube = v; updatedCount++; }
+                }
+            });
+
+            if (updatedCount > 0) {
                 loadInputsFromActiveBike();
                 renderTabs();
                 draw();
                 document.getElementById('importData').value = '';
-                alert('データを正常に反映しました！');
-            } catch (e) {
-                alert('データの形式が正しくありません。');
+                alert(`${updatedCount} 個の項目を解析して自動反映しました！`);
+            } else {
+                alert('数値の読み取りに失敗しました。Bike Insights のジオメトリ表が含まれる部分を選択・コピーして再度お試しください。');
             }
         });
 
