@@ -30,9 +30,6 @@
             background-color: var(--panel-bg);
             padding: 10px 16px;
             border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         header h1 { font-size: 1.05rem; font-weight: 600; color: var(--accent-color); }
@@ -40,7 +37,7 @@
         .main-container { display: flex; flex: 1; overflow: hidden; }
 
         .sidebar {
-            width: 400px;
+            width: 380px;
             background-color: var(--panel-bg);
             border-right: 1px solid var(--border-color);
             display: flex;
@@ -48,47 +45,50 @@
             z-index: 10;
         }
 
-        .import-bar {
-            padding: 10px 12px;
-            background-color: rgba(56, 189, 248, 0.08);
+        /* 爆速2項目入力エリア */
+        .quick-input-card {
+            padding: 12px;
+            background: rgba(56, 189, 248, 0.1);
             border-bottom: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
         }
 
-        .import-bar label {
-            font-size: 0.75rem;
-            font-weight: bold;
-            color: var(--accent-color);
-        }
-
-        .import-input-wrapper { display: flex; gap: 6px; }
-
-        .import-input-wrapper textarea {
-            flex: 1;
-            height: 52px;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 6px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            resize: none;
-        }
-
-        .btn-import {
-            background: #0284c7;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
+        .quick-title {
             font-size: 0.8rem;
             font-weight: bold;
-            cursor: pointer;
-            white-space: nowrap;
+            color: var(--accent-color);
+            margin-bottom: 8px;
         }
-        .btn-import:hover { background: #0369a1; }
+
+        .quick-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .quick-field {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .quick-field label {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .quick-field input {
+            width: 100%;
+            padding: 6px;
+            background: var(--bg-color);
+            border: 1px solid var(--accent-color);
+            color: #fff;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-align: right;
+        }
 
         .bike-tabs-bar {
             padding: 10px 12px;
@@ -201,11 +201,18 @@
 
     <div class="main-container">
         <div class="sidebar">
-            <div class="import-bar">
-                <label for="importData">Bike Insights 画面の文字をコピーして貼付</label>
-                <div class="import-input-wrapper">
-                    <textarea id="importData" placeholder="Bike Insights 画面の文字を全選択(Ctrl+A)して貼り付け"></textarea>
-                    <button class="btn-import" id="btnImport">解析</button>
+            <!-- 最速入力カード -->
+            <div class="quick-input-card">
+                <div class="quick-title">⚡ 爆速入力 (ReachとStackだけ入れればOK)</div>
+                <div class="quick-row">
+                    <div class="quick-field">
+                        <label for="qReach">Reach:</label>
+                        <input type="number" id="qReach" placeholder="380">
+                    </div>
+                    <div class="quick-field">
+                        <label for="qStack">Stack:</label>
+                        <input type="number" id="qStack" placeholder="540">
+                    </div>
                 </div>
             </div>
 
@@ -238,7 +245,7 @@
             </div>
 
             <div class="inputs-container">
-                <div class="section-title">ジオメトリ設定</div>
+                <div class="section-title">詳細ジオメトリ設定</div>
                 <div class="input-group"><label for="reach">リーチ</label><div class="input-wrapper"><input type="number" id="reach"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="stack">スタック</label><div class="input-wrapper"><input type="number" id="stack"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="headAngle">ヘッドアングル</label><div class="input-wrapper"><input type="number" id="headAngle" step="0.1"><span class="unit">°</span></div></div>
@@ -310,53 +317,26 @@
             return acc;
         }, {});
 
-        // 全文からの強力なキー・値ペア抽出処理
-        document.getElementById('btnImport').addEventListener('click', () => {
-            const rawText = document.getElementById('importData').value;
-            if (!rawText.trim()) return alert('コピーしたテキストを貼り付けてください。');
+        const qReach = document.getElementById('qReach');
+        const qStack = document.getElementById('qStack');
 
-            const current = getActiveBike();
-            let updatedKeys = [];
-
-            // 抽出用正規表現マップ (キーワードから前後50文字以内にある数字を探す)
-            const patterns = {
-                reach: { reg: /reach[^\d]*?(\d{3}(\.\d+)?)/i, min: 200, max: 600 },
-                stack: { reg: /stack[^\d]*?(\d{3}(\.\d+)?)/i, min: 300, max: 800 },
-                headAngle: { reg: /(head tube angle|head angle)[^\d]*?(\d{2}(\.\d+)?)/i, min: 60, max: 80 },
-                seatAngle: { reg: /(seat tube angle|seat angle)[^\d]*?(\d{2}(\.\d+)?)/i, min: 60, max: 85 },
-                bbDrop: { reg: /bb drop[^\d]*?(\d{1,3}(\.\d+)?)/i, min: 10, max: 120 },
-                rearCenter: { reg: /(chainstay|rear center)[^\d]*?(\d{3}(\.\d+)?)/i, min: 300, max: 600 },
-                wheelbase: { reg: /wheelbase[^\d]*?(\d{3,4}(\.\d+)?)/i, min: 800, max: 1300 },
-                headTube: { reg: /head tube length[^\d]*?(\d{2,3}(\.\d+)?)/i, min: 50, max: 300 },
-                seatTube: { reg: /seat tube length[^\d]*?(\d{2,3}(\.\d+)?)/i, min: 300, max: 700 }
-            };
-
-            // 改行をスペースに統一して検索
-            const cleanText = rawText.replace(/[\r\n]+/g, ' ');
-
-            Object.keys(patterns).forEach(key => {
-                const item = patterns[key];
-                const match = cleanText.match(item.reg);
-                if (match) {
-                    // キャプチャグループから数値を取得
-                    const val = parseFloat(match[1] || match[2]);
-                    if (!isNaN(val) && val >= item.min && val <= item.max) {
-                        current.data[key] = val;
-                        updatedKeys.push(key);
-                    }
-                }
-            });
-
-            if (updatedKeys.length > 0) {
-                loadInputsFromActiveBike();
-                renderTabs();
-                draw();
-                document.getElementById('importData').value = '';
-                alert(`${updatedKeys.length} 個の項目を解析・更新しました！ (${updatedKeys.join(', ')})`);
-            } else {
-                alert('数値の検出に失敗しました。コピーしたテキストの一部（例: "Reach 380 mm Stack 540 mm" のような文字列）を貼り付け欄に貼って試してみてください。');
+        // 上部カードのReach/Stack入力と連動
+        const syncQuickInputs = () => {
+            const bike = getActiveBike();
+            if (!bike) return;
+            if (qReach.value) {
+                bike.data.reach = parseFloat(qReach.value) || 0;
+                inputs.reach.value = bike.data.reach;
             }
-        });
+            if (qStack.value) {
+                bike.data.stack = parseFloat(qStack.value) || 0;
+                inputs.stack.value = bike.data.stack;
+            }
+            draw();
+        };
+
+        qReach.addEventListener('input', syncQuickInputs);
+        qStack.addEventListener('input', syncQuickInputs);
 
         const calcAccordion = document.getElementById('calcAccordion');
         const calcHeader = document.getElementById('calcHeader');
@@ -372,12 +352,16 @@
             const bike = getActiveBike();
             if (!bike) return;
             inputIds.forEach(id => { if (inputs[id]) inputs[id].value = bike.data[id]; });
+            qReach.value = bike.data.reach;
+            qStack.value = bike.data.stack;
         }
 
         function updateActiveBikeFromInputs() {
             const bike = getActiveBike();
             if (!bike) return;
             inputIds.forEach(id => { if (inputs[id]) bike.data[id] = parseFloat(inputs[id].value) || 0; });
+            qReach.value = bike.data.reach;
+            qStack.value = bike.data.stack;
             renderTabs();
             draw();
         }
