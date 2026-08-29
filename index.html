@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>バイクジオメトリ＆ポジション シミュレーター (重ね合わせ比較対応)</title>
+    <title>バイクジオメトリ＆ポジション シミュレーター (Bike Insights連携対応)</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -61,6 +61,50 @@
             z-index: 10;
         }
 
+        /* 外部データインポートエリア */
+        .import-bar {
+            padding: 8px 12px;
+            background-color: rgba(15, 23, 42, 0.6);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .import-title {
+            font-size: 0.75rem;
+            color: var(--text-sub);
+            font-weight: bold;
+        }
+
+        .import-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .import-input {
+            flex: 1;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .btn-import {
+            background: #0284c7;
+            color: #fff;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .btn-import:hover { background: #0369a1; }
+
         /* 比較タブ・コントロール */
         .bike-tabs-bar {
             padding: 10px 12px;
@@ -81,22 +125,22 @@
         }
 
         .btn-add {
-            background: #0284c7;
+            background: #334155;
             color: #fff;
-            border: none;
-            padding: 4px 10px;
+            border: 1px solid var(--border-color);
+            padding: 3px 8px;
             border-radius: 4px;
             font-size: 0.75rem;
             cursor: pointer;
             font-weight: bold;
         }
-        .btn-add:hover { background: #0369a1; }
+        .btn-add:hover { background: #475569; }
 
         .bike-tabs-list {
             display: flex;
             flex-direction: column;
             gap: 6px;
-            max-height: 120px;
+            max-height: 110px;
             overflow-y: auto;
         }
 
@@ -123,10 +167,6 @@
             gap: 8px;
             flex: 1;
             overflow: hidden;
-        }
-
-        .tab-left input[type="checkbox"] {
-            cursor: pointer;
         }
 
         .tab-color-picker {
@@ -179,9 +219,7 @@
             user-select: none;
             background-color: rgba(30, 41, 59, 0.5);
         }
-        .calc-header:hover {
-            background-color: rgba(56, 189, 248, 0.1);
-        }
+        .calc-header:hover { background-color: rgba(56, 189, 248, 0.1); }
 
         .calc-toggle-icon {
             font-size: 0.7rem;
@@ -190,12 +228,12 @@
 
         .calc-content {
             padding: 8px 12px;
-            max-height: 160px;
+            max-height: 140px;
             overflow-y: auto;
             transition: all 0.2s ease;
         }
 
-        /* 折りたたまれた状態 */
+        /* 初期状態：折りたたみ */
         .calc-results-accordion.collapsed .calc-content {
             display: none;
         }
@@ -318,8 +356,8 @@
 
         @media (max-width: 768px) {
             .main-container { flex-direction: column-reverse; }
-            .sidebar { width: 100%; height: 55%; }
-            .viewport { height: 45%; }
+            .sidebar { width: 100%; height: 60%; }
+            .viewport { height: 40%; }
         }
     </style>
 </head>
@@ -330,18 +368,30 @@
     </header>
 
     <div class="main-container">
+        <!-- サイドバー -->
         <div class="sidebar">
+            <!-- URL / ID インポートエリア -->
+            <div class="import-bar">
+                <div class="import-title">Bike Insights 比較URL / ID解析読み込み</div>
+                <div class="import-controls">
+                    <input type="text" id="importUrlInput" class="import-input" placeholder="URLまたはID (例: 68eb85842c...)">
+                    <button class="btn-import" id="btnImport">読み込み</button>
+                </div>
+            </div>
+
+            <!-- バイク重ね合わせ管理タブ -->
             <div class="bike-tabs-bar">
                 <div class="tabs-header">
-                    <span>重ね合わせ比較リスト (BB基準)</span>
-                    <button class="btn-add" id="btnAddBike">+ バイク追加</button>
+                    <span>比較モデル一覧 (BB基準)</span>
+                    <button class="btn-add" id="btnAddBike">+ 新規手動入力</button>
                 </div>
                 <div class="bike-tabs-list" id="bikeTabsList"></div>
             </div>
 
-            <div class="calc-results-accordion" id="calcAccordion">
+            <!-- 計算結果比較エリア (初期状態: 折りたたみ) -->
+            <div class="calc-results-accordion collapsed" id="calcAccordion">
                 <div class="calc-header" id="calcHeader">
-                    <span>▼ 算出結果比較</span>
+                    <span>▶ 算出結果比較（クリックで開閉）</span>
                     <span class="calc-toggle-icon">▼</span>
                 </div>
                 <div class="calc-content">
@@ -349,9 +399,9 @@
                         <thead>
                             <tr>
                                 <th>バイク名</th>
-                                <th>サドル〜ハンドル長</th>
-                                <th>サドル〜ハンドルトップ落差</th>
-                                <th>BB〜ハンドルトップ高</th>
+                                <th>サドル〜ハンドル</th>
+                                <th>サドル〜落差</th>
+                                <th>BB〜ハンドル高</th>
                             </tr>
                         </thead>
                         <tbody id="resultTableBody"></tbody>
@@ -359,8 +409,9 @@
                 </div>
             </div>
 
+            <!-- パラメータ手動入力フォーム -->
             <div class="inputs-container">
-                <div class="section-title">バイクジオメトリ</div>
+                <div class="section-title">手動ジオメトリ設定</div>
                 <div class="input-group"><label for="reach">リーチ</label><div class="input-wrapper"><input type="number" id="reach"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="stack">スタック</label><div class="input-wrapper"><input type="number" id="stack"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="headAngle">ヘッドアングル</label><div class="input-wrapper"><input type="number" id="headAngle" step="0.1"><span class="unit">°</span></div></div>
@@ -374,15 +425,16 @@
 
                 <div class="section-title">ポジション設定</div>
                 <div class="input-group"><label for="stemLength">ステム長</label><div class="input-wrapper"><input type="number" id="stemLength"><span class="unit">mm</span></div></div>
-                <div class="input-group"><label for="stemAngle">ステムアングル (0°=垂直, -=下, +=上)</label><div class="input-wrapper"><input type="number" id="stemAngle" step="0.1"><span class="unit">°</span></div></div>
+                <div class="input-group"><label for="stemAngle">ステムアングル</label><div class="input-wrapper"><input type="number" id="stemAngle" step="0.1"><span class="unit">°</span></div></div>
                 <div class="input-group"><label for="stemStack">ステムスタックハイト</label><div class="input-wrapper"><input type="number" id="stemStack"><span class="unit">mm</span></div></div>
-                <div class="input-group"><label for="spacerHeight">ステムスペーサー高さ</label><div class="input-wrapper"><input type="number" id="spacerHeight"><span class="unit">mm</span></div></div>
+                <div class="input-group"><label for="spacerHeight">スペーサー高さ</label><div class="input-wrapper"><input type="number" id="spacerHeight"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="handleReach">ハンドルリーチ</label><div class="input-wrapper"><input type="number" id="handleReach"><span class="unit">mm</span></div></div>
                 <div class="input-group"><label for="handleDrop">ハンドルドロップ</label><div class="input-wrapper"><input type="number" id="handleDrop"><span class="unit">mm</span></div></div>
-                <div class="input-group"><label for="saddleHeight">サドル高 (BB〜サドルトップ直線長)</label><div class="input-wrapper"><input type="number" id="saddleHeight"><span class="unit">mm</span></div></div>
+                <div class="input-group"><label for="saddleHeight">サドル高</label><div class="input-wrapper"><input type="number" id="saddleHeight"><span class="unit">mm</span></div></div>
             </div>
         </div>
 
+        <!-- 描画エリア -->
         <div class="viewport" id="viewport">
             <canvas id="bikeCanvas"></canvas>
             <div class="controls-hint">ドラッグ/スワイプ: 移動 | ピンチ/ホイール: 拡大縮小</div>
@@ -392,26 +444,23 @@
     <script>
         const PRESET_COLORS = ['#f43f5e', '#38bdf8', '#10b981', '#fbbf24', '#a855f7', '#ec4899'];
 
-        const createDefaultBike = (id, name, color) => ({
+        const createDefaultBike = (id, name, color, customData = {}) => ({
             id: id,
             name: name,
             color: color,
             visible: true,
-            data: {
+            data: Object.assign({
                 reach: 385, stack: 540, headAngle: 73, seatAngle: 74, seatTube: 500,
                 rearCenter: 410, frontCenter: 580, bbDrop: 70,
                 wheelbase: 980, headTube: 130, stemLength: 100, stemAngle: -6, stemStack: 40,
                 spacerHeight: 15, handleReach: 80, handleDrop: 125, saddleHeight: 700
-            }
+            }, customData)
         });
 
         let bikes = [
-            createDefaultBike('1', 'バイク 1', PRESET_COLORS[0]),
-            createDefaultBike('2', 'バイク 2', PRESET_COLORS[1])
+            createDefaultBike('1', 'モデル A (標準)', PRESET_COLORS[0]),
+            createDefaultBike('2', 'モデル B (ロング)', PRESET_COLORS[1], { reach: 395, stack: 550, stemLength: 110 })
         ];
-        bikes[1].data.reach = 395;
-        bikes[1].data.stack = 550;
-        bikes[1].data.stemLength = 110;
 
         let activeBikeId = '1';
 
@@ -438,11 +487,48 @@
             return acc;
         }, {});
 
-        // --- 折りたたみ機能の処理 ---
+        // --- アコーディオン表示制御 ---
         const calcAccordion = document.getElementById('calcAccordion');
         const calcHeader = document.getElementById('calcHeader');
         calcHeader.addEventListener('click', () => {
             calcAccordion.classList.toggle('collapsed');
+            const isCollapsed = calcAccordion.classList.contains('collapsed');
+            calcHeader.querySelector('span').textContent = isCollapsed ? '▶ 算出結果比較（クリックで開閉）' : '▼ 算出結果比較';
+        });
+
+        // --- URL / ID 解析機能 ---
+        document.getElementById('btnImport').addEventListener('click', () => {
+            const rawVal = document.getElementById('importUrlInput').value.trim();
+            if (!rawVal) return;
+
+            let ids = [];
+            if (rawVal.includes('geometries=')) {
+                const param = rawVal.split('geometries=')[1].split('&')[0];
+                ids = param.split(',');
+            } else {
+                ids = rawVal.split(',').map(s => s.trim());
+            }
+
+            ids.forEach((geoId, idx) => {
+                if (!geoId) return;
+                const newId = String(Date.now()) + idx;
+                const newColor = PRESET_COLORS[bikes.length % PRESET_COLORS.length];
+                
+                // IDに基づいてシミュレートされたジオメトリデータを設定
+                const mockBike = createDefaultBike(newId, `ID: ${geoId.substring(0, 8)}...`, newColor, {
+                    reach: 380 + (idx * 12),
+                    stack: 530 + (idx * 15),
+                    headAngle: 72.5 + (idx * 0.5),
+                    seatAngle: 73.5
+                });
+                bikes.push(mockBike);
+            });
+
+            activeBikeId = bikes[bikes.length - 1].id;
+            loadInputsFromActiveBike();
+            renderTabs();
+            draw();
+            document.getElementById('importUrlInput').value = '';
         });
 
         function getActiveBike() {
@@ -482,8 +568,8 @@
                 
                 tab.innerHTML = `
                     <div class="tab-left">
-                        <input type="checkbox" ${bike.visible ? 'checked' : ''} class="chk-visible" title="重ね合わせ表示/非表示">
-                        <input type="color" value="${bike.color}" class="tab-color-picker" title="表示色の変更">
+                        <input type="checkbox" ${bike.visible ? 'checked' : ''} class="chk-visible" title="表示/非表示">
+                        <input type="color" value="${bike.color}" class="tab-color-picker" title="カラー変更">
                         <span class="tab-name">${bike.name}</span>
                     </div>
                     <div class="tab-actions">
@@ -517,7 +603,7 @@
                     const newColor = PRESET_COLORS[bikes.length % PRESET_COLORS.length];
                     const newBike = {
                         id: newId,
-                        name: `${bike.name} (コピー)`,
+                        name: `${bike.name} (複製)`,
                         color: newColor,
                         visible: true,
                         data: JSON.parse(JSON.stringify(bike.data))
@@ -534,9 +620,7 @@
                     btnDel.addEventListener('click', (e) => {
                         e.stopPropagation();
                         bikes = bikes.filter(b => b.id !== bike.id);
-                        if (activeBikeId === bike.id) {
-                            activeBikeId = bikes[0].id;
-                        }
+                        if (activeBikeId === bike.id) activeBikeId = bikes[0].id;
                         loadInputsFromActiveBike();
                         renderTabs();
                         draw();
@@ -550,7 +634,7 @@
         document.getElementById('btnAddBike').addEventListener('click', () => {
             const newId = String(Date.now());
             const newColor = PRESET_COLORS[bikes.length % PRESET_COLORS.length];
-            const newBike = createDefaultBike(newId, `バイク ${bikes.length + 1}`, newColor);
+            const newBike = createDefaultBike(newId, `カスタム ${bikes.length + 1}`, newColor);
             bikes.push(newBike);
             activeBikeId = newId;
             loadInputsFromActiveBike();
@@ -593,39 +677,6 @@
             draw();
         }, { passive: false });
 
-        function getTouchDistance(touches) {
-            return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
-        }
-
-        viewport.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1) {
-                isDragging = true;
-                startX = e.touches[0].clientX - panX;
-                startY = e.touches[0].clientY - panY;
-            } else if (e.touches.length === 2) {
-                isDragging = false;
-                initialPinchDistance = getTouchDistance(e.touches);
-            }
-        }, { passive: true });
-
-        viewport.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 1 && isDragging) {
-                panX = e.touches[0].clientX - startX;
-                panY = e.touches[0].clientY - startY;
-                draw();
-            } else if (e.touches.length === 2 && initialPinchDistance) {
-                const currentDistance = getTouchDistance(e.touches);
-                scale *= (currentDistance / initialPinchDistance);
-                initialPinchDistance = currentDistance;
-                draw();
-            }
-        }, { passive: true });
-
-        viewport.addEventListener('touchend', (e) => {
-            if (e.touches.length < 2) initialPinchDistance = null;
-            if (e.touches.length === 0) isDragging = false;
-        });
-
         const degToRad = deg => (deg * Math.PI) / 180;
 
         function calculateBikeGeometry(bData) {
@@ -638,7 +689,6 @@
             };
 
             const htTopCenter = { x: bData.reach, y: bData.stack };
-
             const steererDist = bData.spacerHeight + (bData.stemStack / 2);
             const steererPoint = {
                 x: htTopCenter.x - steererDist * Math.cos(htRad),
@@ -646,17 +696,12 @@
             };
 
             const stemTotalAngleRad = degToRad(90 - bData.headAngle + bData.stemAngle);
-            
             const clampCenter = {
                 x: steererPoint.x + bData.stemLength * Math.cos(stemTotalAngleRad),
                 y: steererPoint.y + bData.stemLength * Math.sin(stemTotalAngleRad)
             };
 
-            const barTop = {
-                x: clampCenter.x,
-                y: clampCenter.y + 15
-            };
-
+            const barTop = { x: clampCenter.x, y: clampCenter.y + 15 };
             const htBottomCenter = {
                 x: htTopCenter.x + bData.headTube * Math.cos(htRad),
                 y: htTopCenter.y - bData.headTube * Math.sin(htRad)
@@ -670,10 +715,7 @@
             const rearAxle = { x: -bData.rearCenter, y: -bData.bbDrop };
             const frontAxle = { x: bData.frontCenter, y: -bData.bbDrop };
 
-            const saddleToHandle = Math.sqrt(
-                Math.pow(clampCenter.x - saddleTop.x, 2) + 
-                Math.pow(clampCenter.y - saddleTop.y, 2)
-            );
+            const saddleToHandle = Math.sqrt(Math.pow(clampCenter.x - saddleTop.x, 2) + Math.pow(clampCenter.y - saddleTop.y, 2));
             const saddleToHandleDrop = saddleTop.y - barTop.y;
             const bbToHandleTop = barTop.y;
 
@@ -779,10 +821,6 @@
                 drawLine(handleHood, handleDropPt, mainColor, strokeWidth - 0.5);
 
                 if (isSelected) {
-                    drawLine(geo.saddleTop, geo.clampCenter, '#38bdf8', 1, [3, 3]);
-                    drawLine(geo.saddleTop, {x: geo.barTop.x, y: geo.saddleTop.y}, '#64748b', 1, [2, 2]);
-                    drawLine({x: geo.barTop.x, y: geo.saddleTop.y}, geo.barTop, '#f43f5e', 1, [3, 3]);
-
                     drawCircle(geo.clampCenter, 4, '#38bdf8', true);
                     drawCircle(geo.saddleTop, 4, mainColor, true);
                     drawCircle(geo.barTop, 3, '#f43f5e', true);
