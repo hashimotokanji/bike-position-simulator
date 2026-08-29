@@ -48,7 +48,6 @@
             z-index: 10;
         }
 
-        /* 一括インポートエリア */
         .import-bar {
             padding: 10px 12px;
             background-color: rgba(56, 189, 248, 0.08);
@@ -68,7 +67,7 @@
 
         .import-input-wrapper textarea {
             flex: 1;
-            height: 48px;
+            height: 52px;
             background: var(--bg-color);
             border: 1px solid var(--border-color);
             color: var(--text-main);
@@ -91,7 +90,6 @@
         }
         .btn-import:hover { background: #0369a1; }
 
-        /* 比較タブ */
         .bike-tabs-bar {
             padding: 10px 12px;
             background-color: rgba(15, 23, 42, 0.4);
@@ -203,11 +201,10 @@
 
     <div class="main-container">
         <div class="sidebar">
-            <!-- テキストそのまま貼り付け一括解析 -->
             <div class="import-bar">
                 <label for="importData">Bike Insights 画面の文字をコピーして貼付</label>
                 <div class="import-input-wrapper">
-                    <textarea id="importData" placeholder="Bike Insights のジオメトリ表周辺をまるごと選択・コピーしてここに貼り付け"></textarea>
+                    <textarea id="importData" placeholder="Bike Insights 画面の文字を全選択(Ctrl+A)して貼り付け"></textarea>
                     <button class="btn-import" id="btnImport">解析</button>
                 </div>
             </div>
@@ -313,52 +310,51 @@
             return acc;
         }, {});
 
-        // テキストからの高度な幾何数値自動解析処理
+        // 全文からの強力なキー・値ペア抽出処理
         document.getElementById('btnImport').addEventListener('click', () => {
             const rawText = document.getElementById('importData').value;
             if (!rawText.trim()) return alert('コピーしたテキストを貼り付けてください。');
 
             const current = getActiveBike();
-            const lines = rawText.split(/\n+/);
-            let updatedCount = 0;
+            let updatedKeys = [];
 
-            const extractNum = (str) => {
-                const match = str.match(/(\d+(\.\d+)?)/);
-                return match ? parseFloat(match[1]) : null;
+            // 抽出用正規表現マップ (キーワードから前後50文字以内にある数字を探す)
+            const patterns = {
+                reach: { reg: /reach[^\d]*?(\d{3}(\.\d+)?)/i, min: 200, max: 600 },
+                stack: { reg: /stack[^\d]*?(\d{3}(\.\d+)?)/i, min: 300, max: 800 },
+                headAngle: { reg: /(head tube angle|head angle)[^\d]*?(\d{2}(\.\d+)?)/i, min: 60, max: 80 },
+                seatAngle: { reg: /(seat tube angle|seat angle)[^\d]*?(\d{2}(\.\d+)?)/i, min: 60, max: 85 },
+                bbDrop: { reg: /bb drop[^\d]*?(\d{1,3}(\.\d+)?)/i, min: 10, max: 120 },
+                rearCenter: { reg: /(chainstay|rear center)[^\d]*?(\d{3}(\.\d+)?)/i, min: 300, max: 600 },
+                wheelbase: { reg: /wheelbase[^\d]*?(\d{3,4}(\.\d+)?)/i, min: 800, max: 1300 },
+                headTube: { reg: /head tube length[^\d]*?(\d{2,3}(\.\d+)?)/i, min: 50, max: 300 },
+                seatTube: { reg: /seat tube length[^\d]*?(\d{2,3}(\.\d+)?)/i, min: 300, max: 700 }
             };
 
-            lines.forEach((line) => {
-                const l = line.toLowerCase();
-                
-                if (l.includes('reach')) {
-                    const v = extractNum(line); if (v && v > 200 && v < 600) { current.data.reach = v; updatedCount++; }
-                } else if (l.includes('stack')) {
-                    const v = extractNum(line); if (v && v > 300 && v < 800) { current.data.stack = v; updatedCount++; }
-                } else if (l.includes('head tube angle') || l.includes('head angle')) {
-                    const v = extractNum(line); if (v && v > 60 && v < 80) { current.data.headAngle = v; updatedCount++; }
-                } else if (l.includes('seat tube angle') || l.includes('seat angle')) {
-                    const v = extractNum(line); if (v && v > 60 && v < 85) { current.data.seatAngle = v; updatedCount++; }
-                } else if (l.includes('bb drop')) {
-                    const v = extractNum(line); if (v && v > 10 && v < 120) { current.data.bbDrop = v; updatedCount++; }
-                } else if (l.includes('chainstay') || l.includes('rear center')) {
-                    const v = extractNum(line); if (v && v > 300 && v < 600) { current.data.rearCenter = v; updatedCount++; }
-                } else if (l.includes('wheelbase')) {
-                    const v = extractNum(line); if (v && v > 800 && v < 1300) { current.data.wheelbase = v; updatedCount++; }
-                } else if (l.includes('head tube length') || l.includes('head tube')) {
-                    const v = extractNum(line); if (v && v > 50 && v < 300) { current.data.headTube = v; updatedCount++; }
-                } else if (l.includes('seat tube length') || l.includes('seat tube')) {
-                    const v = extractNum(line); if (v && v > 300 && v < 700) { current.data.seatTube = v; updatedCount++; }
+            // 改行をスペースに統一して検索
+            const cleanText = rawText.replace(/[\r\n]+/g, ' ');
+
+            Object.keys(patterns).forEach(key => {
+                const item = patterns[key];
+                const match = cleanText.match(item.reg);
+                if (match) {
+                    // キャプチャグループから数値を取得
+                    const val = parseFloat(match[1] || match[2]);
+                    if (!isNaN(val) && val >= item.min && val <= item.max) {
+                        current.data[key] = val;
+                        updatedKeys.push(key);
+                    }
                 }
             });
 
-            if (updatedCount > 0) {
+            if (updatedKeys.length > 0) {
                 loadInputsFromActiveBike();
                 renderTabs();
                 draw();
                 document.getElementById('importData').value = '';
-                alert(`${updatedCount} 個の項目を解析して自動反映しました！`);
+                alert(`${updatedKeys.length} 個の項目を解析・更新しました！ (${updatedKeys.join(', ')})`);
             } else {
-                alert('数値の読み取りに失敗しました。Bike Insights のジオメトリ表が含まれる部分を選択・コピーして再度お試しください。');
+                alert('数値の検出に失敗しました。コピーしたテキストの一部（例: "Reach 380 mm Stack 540 mm" のような文字列）を貼り付け欄に貼って試してみてください。');
             }
         });
 
