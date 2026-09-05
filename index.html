@@ -28,11 +28,32 @@
 
         header {
             background-color: var(--panel-bg);
-            padding: 10px 16px;
+            padding: 8px 16px;
             border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         header h1 { font-size: 1.05rem; font-weight: 600; color: var(--accent-color); }
+
+        .header-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-header {
+            background-color: #334155;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-header:hover { background-color: #475569; }
+        .btn-header-danger:hover { background-color: #991b1b; border-color: #f87171; }
 
         .main-container { display: flex; flex: 1; overflow: hidden; }
 
@@ -154,7 +175,7 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            touch-action: none; /* スマホでのデフォルトスクロールを禁止 */
+            touch-action: none;
         }
         canvas { width: 100%; height: 100%; display: block; touch-action: none; }
         .controls-hint { position: absolute; bottom: 12px; right: 12px; background: rgba(30, 41, 59, 0.85); padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; color: var(--text-sub); pointer-events: none; border: 1px solid var(--border-color); }
@@ -169,7 +190,13 @@
 <body>
 
     <header>
-        <h1>バイクジオメトリ＆ポジション シミュレーター</h1>
+        <h1>バイクシミュレーター</h1>
+        <div class="header-actions">
+            <button class="btn-header" id="btnExport">保存 (JSON)</button>
+            <button class="btn-header" id="btnImport">読み込み</button>
+            <button class="btn-header btn-header-danger" id="btnReset">初期化</button>
+            <input type="file" id="fileInput" accept=".json" style="display: none;">
+        </div>
     </header>
 
     <div class="main-container">
@@ -238,6 +265,7 @@
     </div>
 
     <script>
+        const STORAGE_KEY = 'bike_simulator_data_v1';
         const PRESET_COLORS = ['#f43f5e', '#38bdf8', '#10b981', '#fbbf24', '#a855f7', '#ec4899'];
 
         const createDefaultBike = (id, name, color, customData = {}) => ({
@@ -253,12 +281,36 @@
             }, customData)
         });
 
-        let bikes = [
+        const initialBikes = [
             createDefaultBike('1', 'バイク 1', PRESET_COLORS[0]),
             createDefaultBike('2', 'バイク 2', PRESET_COLORS[1], { reach: 395, stack: 550, stemLength: 110 })
         ];
 
+        let bikes = [];
         let activeBikeId = '1';
+
+        /* --- LocalStorage 自動保存・読み込み機能 --- */
+        function saveDataToStorage() {
+            const payload = { activeBikeId, bikes };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        }
+
+        function loadDataFromStorage() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    bikes = parsed.bikes || initialBikes;
+                    activeBikeId = parsed.activeBikeId || bikes[0].id;
+                    return true;
+                } catch (e) {
+                    console.error('Storage error:', e);
+                }
+            }
+            bikes = JSON.parse(JSON.stringify(initialBikes));
+            activeBikeId = bikes[0].id;
+            return false;
+        }
 
         const canvas = document.getElementById('bikeCanvas');
         const ctx = canvas.getContext('2d');
@@ -307,6 +359,7 @@
             const bike = getActiveBike();
             if (!bike) return;
             inputIds.forEach(id => { if (inputs[id]) bike.data[id] = parseFloat(inputs[id].value) || 0; });
+            saveDataToStorage();
             renderTabs();
             draw();
         }
@@ -335,18 +388,20 @@
                 tab.addEventListener('click', (e) => {
                     if (e.target.tagName === 'INPUT' || e.target.classList.contains('btn-tab-action')) return;
                     activeBikeId = bike.id;
+                    saveDataToStorage();
                     loadInputsFromActiveBike();
                     renderTabs();
                     draw();
                 });
 
-                tab.querySelector('.chk-visible').addEventListener('change', (e) => { bike.visible = e.target.checked; draw(); });
-                tab.querySelector('.tab-color-picker').addEventListener('input', (e) => { bike.color = e.target.value; renderTabs(); draw(); });
+                tab.querySelector('.chk-visible').addEventListener('change', (e) => { bike.visible = e.target.checked; saveDataToStorage(); draw(); });
+                tab.querySelector('.tab-color-picker').addEventListener('input', (e) => { bike.color = e.target.value; saveDataToStorage(); renderTabs(); draw(); });
                 tab.querySelector('.btn-clone').addEventListener('click', (e) => {
                     e.stopPropagation();
                     const newBike = { id: String(Date.now()), name: `${bike.name} (複製)`, color: PRESET_COLORS[bikes.length % PRESET_COLORS.length], visible: true, data: JSON.parse(JSON.stringify(bike.data)) };
                     bikes.push(newBike);
                     activeBikeId = newBike.id;
+                    saveDataToStorage();
                     loadInputsFromActiveBike();
                     renderTabs();
                     draw();
@@ -358,6 +413,7 @@
                         e.stopPropagation();
                         bikes = bikes.filter(b => b.id !== bike.id);
                         if (activeBikeId === bike.id) activeBikeId = bikes[0].id;
+                        saveDataToStorage();
                         loadInputsFromActiveBike();
                         renderTabs();
                         draw();
@@ -372,9 +428,61 @@
             const newBike = createDefaultBike(String(Date.now()), `バイク ${bikes.length + 1}`, PRESET_COLORS[bikes.length % PRESET_COLORS.length]);
             bikes.push(newBike);
             activeBikeId = newBike.id;
+            saveDataToStorage();
             loadInputsFromActiveBike();
             renderTabs();
             draw();
+        });
+
+        /* --- JSON入出力 & リセット機能 --- */
+        document.getElementById('btnExport').addEventListener('click', () => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ activeBikeId, bikes }, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `bike_geometry_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        });
+
+        document.getElementById('btnImport').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const parsed = JSON.parse(event.target.result);
+                    if (parsed.bikes && Array.isArray(parsed.bikes)) {
+                        bikes = parsed.bikes;
+                        activeBikeId = parsed.activeBikeId || bikes[0].id;
+                        saveDataToStorage();
+                        loadInputsFromActiveBike();
+                        renderTabs();
+                        draw();
+                        alert('データを読み込みました');
+                    }
+                } catch (err) {
+                    alert('無効なJSONファイルです');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+
+        document.getElementById('btnReset').addEventListener('click', () => {
+            if (confirm('保存されたデータをすべて削除して初期状態に戻しますか？')) {
+                localStorage.removeItem(STORAGE_KEY);
+                bikes = JSON.parse(JSON.stringify(initialBikes));
+                activeBikeId = bikes[0].id;
+                saveDataToStorage();
+                loadInputsFromActiveBike();
+                renderTabs();
+                draw();
+            }
         });
 
         function resizeCanvas() {
@@ -389,7 +497,7 @@
 
         window.addEventListener('resize', resizeCanvas);
 
-        /* --- ポインター（タッチ＆マウス対応）イベントハンドラ --- */
+        /* --- タッチ＆マウス操作制御 --- */
         let activePointers = [];
         let initialPinchDistance = null;
         let initialScale = scale;
@@ -409,12 +517,10 @@
             if (idx !== -1) activePointers[idx] = e;
 
             if (activePointers.length === 1) {
-                // シングルタッチ/ドラッグ（移動）
                 panX += e.movementX;
                 panY += e.movementY;
                 draw();
             } else if (activePointers.length === 2 && initialPinchDistance) {
-                // ピンチ（拡大縮小）
                 const currentDist = getDistance(activePointers[0], activePointers[1]);
                 const newScale = initialScale * (currentDist / initialPinchDistance);
                 if (newScale > 0.2 && newScale < 5) {
@@ -539,6 +645,8 @@
             drawCircle({x:0, y:0}, 9, '#38bdf8', false);
         }
 
+        // 起動処理
+        loadDataFromStorage();
         loadInputsFromActiveBike();
         renderTabs();
         resizeCanvas();
